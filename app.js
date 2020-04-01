@@ -5,6 +5,8 @@ var cookieParser = require('cookie-parser');
 var lessMiddleware = require('less-middleware');
 var logger = require('morgan');
 
+var router = require('./routes');
+
 var indexRouter = require('./routes/index');
 var userRouter = require('./routes/users-route');
 var postRouter = require('./routes/post-route');
@@ -31,9 +33,9 @@ app.use(fileUpload({
   limits: {fileSize: 50 * 1024 * 1024}
 }))
 
-app.use('/', indexRouter);
-app.use('/user', userRouter);
-//// app.use('/posts',postRouter);
+app.use(router);
+//app.use('/user', userRouter);
+//app.use('/posts',postRouter);
 // app.use('/admin',adminRouter)
 
 // catch 404 and forward to error handler
