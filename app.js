@@ -6,7 +6,12 @@ var lessMiddleware = require('less-middleware');
 var logger = require('morgan');
 
 var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
+var userRouter = require('./routes/users-route');
+var postRouter = require('./routes/post-route');
+var adminRouter = require('./routes/admin-route');
+
+// File Upload Plugin
+const fileUpload = require('express-fileupload')
 
 var app = express();
 
@@ -21,8 +26,15 @@ app.use(cookieParser());
 app.use(lessMiddleware(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// file upload option
+app.use(fileUpload({
+  limits: {fileSize: 50 * 1024 * 1024}
+}))
+
 app.use('/', indexRouter);
-app.use('/users', usersRouter);
+app.use('/user', userRouter);
+//// app.use('/posts',postRouter);
+// app.use('/admin',adminRouter)
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
