@@ -1,9 +1,9 @@
 
 module.exports = {
 
- postAdvertisement: (req, res,error) => {
-      if(error){
-        return res.status(500).send(error);
+ postAdvertisement: (req, res,err) => {
+      if(err){
+        return res.status(500).send(err);
 }
     res.status(201).json({ad:req.body});
     res.end();
