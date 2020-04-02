@@ -1,9 +1,8 @@
-var express = require('express');
-var router = express.Router();
+const express = require('express');
+const userService=require('../service/user-service');
+const router = express.Router();
 
-/* GET users listing. */
-router.get('/', function(req, res, next) {
-  res.send('respond with a resource');
-});
+router.post('/follow',userService.followUser);
+router.post('/unfollow',userService.unfollowUser);
 
 module.exports = router;
