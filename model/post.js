@@ -46,7 +46,8 @@ const post = {
     notifyFollowers: {
         type: Boolean,
         default: true
-    }
+    },
+    postuname: String   // Field used for Full text search
 };
 
 
@@ -55,6 +56,7 @@ const postSchema = new mongoose.Schema(post);
 // Create Index
 postSchema.index({"audienceLocation":"2dsphere"})
 postSchema.index({"audienceFollowers":"followers"})
+postSchema.index({postuname:"text"})
 
 // virtual
 postSchema.virtual('totalLikes').get(()=>this.likes.length)
