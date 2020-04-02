@@ -1,4 +1,5 @@
 
+
 module.exports = {
 
  postAdvertisement: (req, res,err) => {
@@ -8,4 +9,13 @@ module.exports = {
     res.status(201).json({ad:req.body});
     res.end();
 }
+  search: (req,res) => {
+    let username = req.query.query;
+    let limit = parseInt(req.query.limit)
+    console.log(`${username} - ${limit}`)
+    searchService.search(username,limit,(err,doc) => {
+        res.status(200).send(doc)
+    })
+   }
+  
 };
