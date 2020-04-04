@@ -61,6 +61,10 @@ const express = require('express');
 const userService=require('../service/user-service');
 const router = express.Router();
 
+
+
+router.post('/login', userService.login);
+
 router.post('/follow',userService.followUser);
 router.post('/unfollow',userService.unfollowUser);
 // >>>>>>> aeed314bc6d26944c87c505138e028612f218c5e
