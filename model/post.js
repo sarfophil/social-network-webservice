@@ -2,44 +2,50 @@
  * Post Domain
  */
 const mongoose = require('mongoose');
+const User = require('../model/user').getModel
+const blacklistKeywords = require('../model/blacklistedkeyword');
+const BlacklistedPost = require('../model/blacklistedPost')
 
-const post = {
+const Schema = mongoose.Schema;
+
+const postSchema = new Schema({
     user: {
         type: mongoose.Schema.Types.ObjectId,
-        required: true
-    },
-    title: {
-        type: String,
-        required: true
+        required: true,
+        ref: User
     },
     content: {
         type: String,
-        required: true
     },
-    imageLink: [{type:String}],
-    createdDate:{
+    imageLink: [{ type: String }],
+    createdDate: {
         type: Date,
         default: Date.now
     },
-    likes: [{type: mongoose.Schema.Types.ObjectId,required: false}],
-    isHealthy: {
-        type: Boolean,
-        default: true
+    updatedDate: {
+        type: Date,
+        default: null
     },
-    audienceCriteria:{
-        age: {min:Number,max:Number}
+    likes: [{
+        type: mongoose.Schema.Types.ObjectId,
+        required: false,
+    }],
+    isHealthy: Boolean,
+    audienceCriteria: {
+        age: { min: Number, max: Number }
     },
     audienceLocation: {
         type: {
             type: String,
             default: "Point"
         },
-        coordinates: [{type:Number}]
+        coordinates: [{ type: Number }]
     },
     audienceFollowers: [
         {
             user: {
-                type: mongoose.Schema.Types.ObjectId
+                type: mongoose.Schema.Types.ObjectId,
+                ref: User
             }
         }
     ],
@@ -48,25 +54,53 @@ const post = {
         default: true
     },
     postuname: String   // Field used for Full text search
-};
+});
 
 
-const postSchema = new mongoose.Schema(post);
+
 
 // Create Index
-postSchema.index({"audienceLocation":"2dsphere"})
-postSchema.index({"audienceFollowers":"followers"})
-postSchema.index({postuname:"text"})
+postSchema.index({ "audienceLocation": "2dsphere" })
+postSchema.index({ "audienceFollowers": "followers" })
+postSchema.index({ postuname: "text" })
 
 // virtual
-postSchema.virtual('totalLikes').get(()=>this.likes.length)
+postSchema.virtual('totalLikes').get(() => this.likes.length)
+
+//create Post
+postSchema.methods.createPost = async function createPost() {
+    validatePostContent(this.content).then((isUnhealty) => {
+        // console.log(isUnhealty);
+        if (isUnhealty) {
+            this.isHealthy = 'no';
+            new BlacklistedPost({
+                "post": this,
+            }).save().then(() => { }).catch(err => { throw new Error(err) });
+            return this.save()
+        }
+        else {
+            this.isHealthy = 'yes';
+            return this.save();
+        }
+    })
+
+}
+
+
+//filtering unhealthy post
+function validatePostContent(content) {
+    return result = blacklistKeywords.find().then((data) => {
+        var isUnhealty = false;
+
+        data.findIndex(data => {
+            isUnhealty = content.includes(data.word)
+            if (isUnhealty) return true;
+        })
+        return isUnhealty;
+    }).catch((err) => console.log(err))
+
+}
 
 // Post Model
-const postModel = mongoose.model('post',postSchema);
+exports.getModel = mongoose.model('post', postSchema);
 
-
-
-module.exports = {
-    'getSchema': postSchema,
-    'getModel': postModel
-}

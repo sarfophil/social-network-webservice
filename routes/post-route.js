@@ -10,7 +10,7 @@ const postService = require('../service/post-service')
 const searchService = require('../service/search-service')
 
 // util
-const Utils = require('../util/appUtil') 
+// const Utils = require('../util/appUtil') 
 
 
 
@@ -25,4 +25,7 @@ router.get('/search',function(req,res) {
     })
 })
 
-module.exports = router
+router.post('/create',postService.create);
+
+
+module.exports = router;

@@ -9,7 +9,7 @@ var router = require('./routes');
 
 var indexRouter = require('./routes/index');
 
-var userRouter = require('./routes/user-route');
+var userRouter = require('./routes/users-route');
 var postRouter = require('./routes/post-route');
 var adminRouter = require('./routes/admin-route');
 
