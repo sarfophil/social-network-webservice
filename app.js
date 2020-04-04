@@ -8,7 +8,8 @@ var logger = require('morgan');
 var router = require('./routes');
 
 var indexRouter = require('./routes/index');
-var userRouter = require('./routes/users-route');
+
+var userRouter = require('./routes/user-route');
 var postRouter = require('./routes/post-route');
 var adminRouter = require('./routes/admin-route');
 
@@ -34,9 +35,16 @@ app.use(fileUpload({
 }))
 
 app.use(router);
+<<<<<<< HEAD
 //app.use('/user', userRouter);
 //app.use('/posts',postRouter);
 // app.use('/admin',adminRouter)
+=======
+app.use('/', indexRouter);
+app.use('/user', userRouter);
+app.use('/posts',postRouter);
+app.use('/admin',adminRouter)
+>>>>>>> fd28f1e2d6d761abaafaca92d3544fc59eb0fb99
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
