@@ -1,6 +1,4 @@
 // You can uncommment on your end. But Remember to add to .gitignore
-
-
 {
     "env": {
         "browser": true,
