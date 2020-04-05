@@ -44,6 +44,7 @@ const user = {
         default: 0
     },
     followers: [{type: mongoose.Schema.Types.ObjectId}],
+    
     profilePicture: String
 }
 

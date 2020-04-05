@@ -1,5 +1,5 @@
 /** 
- * @author SARFO PHILIP
+ *
  * App Utilities
  */
 const AdminModel = require('../model/admin').adminModel
