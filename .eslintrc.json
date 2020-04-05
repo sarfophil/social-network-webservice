@@ -1,27 +1,27 @@
 // You can uncommment on your end. But Remember to add to .gitignore
 
 
-// {
-//     "env": {
-//         "browser": true,
-//         "commonjs": true
-//     },
-//     "extends": "eslint:recommended",
-//     "rules": {
-//         "indent": [
-//             "error",4
-//         ],
-//         "linebreak-style": [
-//             "error",
-//             "unix"
-//         ],
-//         "quotes": [
-//             "error",
-//             "single"
-//         ],
-//         "semi": [
-//             "error",
-//             "never"
-//         ]
-//     }
-// }
+{
+    "env": {
+        "browser": true,
+        "commonjs": true
+    },
+    "extends": "eslint:recommended",
+    "rules": {
+        "indent": [
+            "error",4
+        ],
+        "linebreak-style": [
+            "error",
+            "unix"
+        ],
+        "quotes": [
+            "error",
+            "single"
+        ],
+        "semi": [
+            "error",
+            "never"
+        ]
+    }
+}

@@ -7,3 +7,5 @@ node_modules
 todo
 .gitignore
 jsconfig.json
+public/images/posts*
+.eslintrc.json

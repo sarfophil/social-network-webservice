@@ -5,11 +5,15 @@ var cookieParser = require('cookie-parser');
 var lessMiddleware = require('less-middleware');
 var logger = require('morgan');
 
+const User=require('./model/user').getModel;
+
+//`var security = require('./config/securityconfig')
+
 var router = require('./routes');
 
 var indexRouter = require('./routes/index');
 
-var userRouter = require('./routes/user-route');
+var userRouter = require('./routes/users-route');
 var postRouter = require('./routes/post-route');
 var adminRouter = require('./routes/admin-route');
 
@@ -28,23 +32,32 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(lessMiddleware(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, 'public')));
+//app.use(security.authorize)
 
 // file upload option
 app.use(fileUpload({
   limits: {fileSize: 50 * 1024 * 1024}
 }))
 
+//===============
+
+// app.use((req,res,next)=>{
+//   User.findOne(req.params.userId)
+//   .then(currentUser=>{
+//       console.log('++++++++++++++',currentUser);
+//       req.user=currentUser;
+//       next();
+//   })
+//   .catch(err=>new Error(err));
+  
+// });
+//===============
+
 app.use(router);
-<<<<<<< HEAD
-//app.use('/user', userRouter);
-//app.use('/posts',postRouter);
-// app.use('/admin',adminRouter)
-=======
 app.use('/', indexRouter);
 app.use('/user', userRouter);
 app.use('/posts',postRouter);
 app.use('/admin',adminRouter)
->>>>>>> fd28f1e2d6d761abaafaca92d3544fc59eb0fb99
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

@@ -1,16 +1,3 @@
-<<<<<<< HEAD
-
-module.exports = {
-
- postAdvertisement: (req, res,err) => {
-      if(err){
-        return res.status(500).send(err);
-}
-    res.status(201).json({ad:req.body});
-    res.end();
-}
-};
-=======
 var express = require('express');
 var router = express.Router();
 const PostModel = require('../model/post').getModel
@@ -22,11 +9,29 @@ const fileStorageService = require('../service/filestorage-service')
 const postService = require('../service/post-service')
 const searchService = require('../service/search-service')
 
-// util
-const Utils = require('../util/appUtil') 
+const bcrypt = require('../util/bcrypt')
+const jwt = require('../util/jwt')
 
 
-
+router.post('/login', (req, res) => {
+    const username = req.body.username;
+    const password = req.body.password;
+    UserModel.findOne({$or : [{username: {$eq: username}},{email: {$eq: username}}]},function (err,user) {
+      if(err) res.statusCode(403)
+      let comparePassword = bcrypt.compareSync(password,user.password) 
+      if(comparePassword){
+        jwt.sign(user,(err,token) => {
+           if(err) {
+              res.status(500).send('Unable to sign token')
+           }else{ 
+             res.status(200).send({access_token: token})
+           }
+        })
+      }else{
+         res.sendStatus(403)
+      }
+    })
+  });
 
 // search post
 router.get('/search',function(req,res) {
@@ -38,5 +43,7 @@ router.get('/search',function(req,res) {
     })
 })
 
-module.exports = router
->>>>>>> fd28f1e2d6d761abaafaca92d3544fc59eb0fb99
+router.post('/create',postService.create);
+
+
+module.exports = router;
