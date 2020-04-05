@@ -6,7 +6,7 @@ const jwt = require('../util/jwt')
 
 
 // Add Permitted Routes to the array
-const allowedRoutes = ['/user/login','/user/account']
+const allowedRoutes = ['/user/login','/user/account','/posts/create']
 
 function shouldPermit(pathName) {
     let flag = Utils.find(allowedRoutes,(route) => route == pathName)

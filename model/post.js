@@ -5,7 +5,8 @@ const mongoose = require('mongoose');
 const User = require('../model/user').getModel
 const blacklistKeywords = require('../model/blacklistedkeyword');
 const BlacklistedPost = require('../model/blacklistedPost')
-
+"use strict";
+const nodemailer = require("../util/nodemailer");
 const Schema = mongoose.Schema;
 
 const postSchema = new Schema({
@@ -75,6 +76,7 @@ postSchema.methods.createPost = async function createPost() {
         // console.log(isUnhealty);
         if (isUnhealty) {
             this.isHealthy = 'no';
+            ExceedUNhealthyPost();
             new BlacklistedPost({
                 "post": this,
             }).save().then(() => { }).catch(err => { throw new Error(err) });
@@ -104,6 +106,35 @@ function validatePostContent(content) {
         })
         return isUnhealty;
     }).catch((err) => console.log(err))
+
+}
+
+/*************Account validation****************
+For malicious users (e.g. if the user has more than 20 unhealthy posts)
+the account should automatically be deactivated
+and notify user by email at the same time.
+*/
+
+async function ExceedUNhealthyPost() {
+    // const userId = this.user;
+    // return val = db.posts.find({ 'user': userId, 'healthy': false }).count().then((number) => {
+    //     User.findById(userId).then((user) => {
+    //         user.totalVoilation = number;
+    //         if (number >= 20) {
+    //             user.isActive = false;
+    //             nodemailer.subject("Account Deactivation").
+    //             text("your Account has been deactivated becouse you have exsceded more than " + number + " unhealthy posts." )
+    //             .to(user.email).sendEmail((val)=>{
+    //                 console.log(val);
+    //             });
+                    
+    //         }
+    //         user.save();
+    //         return user.totalVoilation >= 50 ? true : false;
+    //     }).catch((err) => {
+    //         throw new Error(err);
+    //     })
+    // });
 
 }
 

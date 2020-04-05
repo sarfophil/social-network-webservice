@@ -8,5 +8,5 @@ router.post('/login', userService.login);
 
 router.post('/follow',userService.followUser);
 router.post('/unfollow',userService.unfollowUser);
-
+router.post('/account',userService.signUp);
 module.exports = router;
