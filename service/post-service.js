@@ -44,19 +44,14 @@ const postService = {
         searchService.search(username,limit,(err,doc) => {
             res.status(200).send(doc)
         })
-    }
-
-}
-
-
-exports.getById = ((req, res, next) => {
+    },
+getById:(req, res, next) => {
     const id = req.params.postId;
     Post.findById(id).then((data) => {
         res.send(data);
     }).catch((err) => { res.send(err) });
-})
-
-exports.getAudienceFollowers = ((req, res, next) => {
+},
+getAudienceFollowers :(req, res, next) => {
     const id = req.params.postId;
     Post.findById(id).then((data) => {
         if (data == null) {
@@ -65,17 +60,8 @@ exports.getAudienceFollowers = ((req, res, next) => {
         else
             data.populate('audienceFollowers.user').execPopulate().then((data) => { res.send(data.audienceFollowers) }).catch((err) => console.log(err));
     })
-})
-
-exports.getlikes = ((req, res, next) => {
-    const id = req.params.postId;
-    Post.findById(id).then((data) => {
-
-        data.populate('likes.user').execPopulate().then((data) => { console.log(data); res.send(data.likes) }).catch((err) => console.log(err));
-    })
-});
-
-exports.getAll = (async (req, res, next) => {
+},
+getAll : async (req, res, next) => {
     const page = new Number(req.query.page);
     const limit = new Number(req.query.limit);
     let posts = await Post.find({})
@@ -86,7 +72,19 @@ exports.getAll = (async (req, res, next) => {
             res.send(docs);
         });
 
-})
+},
+getlikes : (req, res, next) => {
+    const id = req.params.postId;
+    Post.findById(id).then((data) => {
+
+        data.populate('likes.user').execPopulate().then((data) => { console.log(data); res.send(data.likes) }).catch((err) => console.log(err));
+    })
+},
+
+}
+
+
+
 
 
 
