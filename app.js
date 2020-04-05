@@ -5,6 +5,8 @@ var cookieParser = require('cookie-parser');
 var lessMiddleware = require('less-middleware');
 var logger = require('morgan');
 
+var security = require('./config/securityconfig')
+
 var router = require('./routes');
 
 var indexRouter = require('./routes/index');
@@ -28,6 +30,7 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(lessMiddleware(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(security.authorize)
 
 // file upload option
 app.use(fileUpload({

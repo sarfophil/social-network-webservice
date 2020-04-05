@@ -7,12 +7,14 @@
     "test": "mocha"
   },
   "dependencies": {
+    "bcrypt": "^4.0.1",
     "cookie-parser": "~1.4.4",
     "debug": "~2.6.9",
     "ejs": "~2.6.1",
     "express": "^4.16.4",
     "express-fileupload": "^1.1.6",
     "http-errors": "~1.6.3",
+    "jsonwebtoken": "^8.5.1",
     "less-middleware": "~2.2.1",
     "mocha": "^7.1.1",
     "mongoose": "^5.9.7",
