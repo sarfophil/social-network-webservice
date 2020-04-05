@@ -1,16 +1,10 @@
 var express = require('express');
 var router = express.Router();
 const blacklistModel = require('../model/blacklistedkeyword')
+const adminService = require('../service/admin-service')
 
-
-
-
-
-
-
-
-
-
+// Login
+router.post('/login', adminService.login);
 
 /**
  * @blacklistPost

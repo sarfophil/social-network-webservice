@@ -4,6 +4,7 @@
  * App Utilities
  */
 const AdminModel = require('../model/admin').adminModel
+const bcrypt = require('../util/bcrypt')
 
 module.exports = {
         /**
@@ -37,12 +38,13 @@ module.exports = {
            return Promise.reject(null)
        },
        populateAdmin: function (onComplete) {
-            let admin = new AdminModel({fullname: 'Super Admin',email:'super@social.com',password: 'super'})
+            let admin = new AdminModel({fullname: 'Super Admin',email:'super@social.com',password: bcrypt.encodeSync('super')})
             AdminModel.exists({email: admin.email})
                 .then(res => {
                     if(res) {
                         onComplete(`admin Already available ${Date.now()}`)
                     }else{
+                        admin.save()
                         onComplete(`admin created - ${Date.now()}`)
                     }
                 }).catch(err => onComplete(`admin failed to create`))
@@ -62,7 +64,7 @@ module.exports = {
            }
            return processedArray;
        },
-       flapMap: function (array, functor){
+       flatMap: function (array, functor){
            let newMap = [];
            for(arr of array){
                const result = functor(arr)

@@ -7,10 +7,8 @@ var logger = require('morgan');
 
 var security = require('./config/securityconfig')
 
-var router = require('./routes');
 
 var indexRouter = require('./routes/index');
-
 var userRouter = require('./routes/users-route');
 var postRouter = require('./routes/post-route');
 var adminRouter = require('./routes/admin-route');
@@ -37,7 +35,7 @@ app.use(fileUpload({
   limits: {fileSize: 50 * 1024 * 1024}
 }))
 
-app.use(router);
+
 app.use('/', indexRouter);
 app.use('/user', userRouter);
 app.use('/posts',postRouter);
