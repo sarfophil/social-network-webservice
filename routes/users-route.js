@@ -61,17 +61,12 @@ const express = require('express');
 const userService=require('../service/user-service');
 const router = express.Router();
 
-
+//router.get('/:userId/followers',userService.getUserFollower);
+router.post('/:userId/followers/:followerId',userService.followUser);
+router.delete('/:userId/followers/:followerId',userService.unfollowUser);
 router.post('/account',userService.signUp)
-router.post('/login', userService.login);
-
-router.post('/follow',userService.followUser);
-router.post('/unfollow',userService.unfollowUser);
-
+//router.post('/login', userService.login);
 router.post(':userId/updateProfile/',userService.updateProfile);
-
-
-// >>>>>>> aeed314bc6d26944c87c505138e028612f218c5e
 
 router.delete("/:userId", (req, res, next) => {
   user.remove({ _id: req.params.userId })
