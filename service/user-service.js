@@ -7,6 +7,8 @@ const jwt = require('../util/jwt')
 const path = require('path');
 const imageUplader = require('../util/imageUploader');
 
+const fservice = require('../service/filestorage-service');
+const uploadPath = require('../public/upload-path').getPath;
 
 exports.login = (function(req,res) {
     const username = req.body.username;
@@ -30,32 +32,24 @@ exports.login = (function(req,res) {
 
 //update profile 
 exports.updateProfilePic = (function (req, res, next) {
-  const userId = req.params.userId;
-  const image = req.files.image
-  const mimetype = req.files.mimetype;
-  const imagePath = path.join('/images/posts/' + new Date().getTime() + '.jpg');
-  //console.log(imagePath);
+  console.log(req.files)
+  let postImages = req.files.images instanceof Array ? req.files.images : [req.files.images]
 
-  if (image != null && (mimetype != 'image/jpeg' || mimetype != 'image/jpg' || mimetype != 'image/png')) {
-    User.findOne(userId).then((user) => {
-      if (user != null) {
-        const oldPrfilePath = user.profilePicture
-
-        FileSystem.createWriteStream(path.join('public' + imagePath), image).then(() => {
-          user.profilePicture = imagePath;
-          FileSystem.unlinkSync(path.join('public/' + oldPrfilePath));
-          user.save().then(() => {
-            res.send({ error: false, message: "Profile Updated successfully!" })
-          })
-        }).catch((err) => {
-          throw new Error(err);
-        })
-      }
-    }).catch((err) => {
-      throw new Error(err);
-    })
-  }
-  else res.send({ error: true, message: 'invalid file' });
+  const imageName = new Date().getTime();
+                try {
+                    let names = fservice.prepareFiles(postImages).renameAs(new String(imageName)).upload().getNames();
+                    if(names[0]!=null){
+                    User.findById(req.params.userId).then((user)=>{
+                      user.profilePicture = names[0];
+                      console.log(imageName + " " + names[0])
+                      user.save().then(()=>{
+                        res.send({ data: req.body, imageUpload: { eror: true, message: "User profile picture updated succesfully" } });
+                      })
+                    })
+                  }
+                } catch (e) {
+                    throw new Error(e);
+                }
 
 })
 
@@ -102,8 +96,10 @@ exports.followUser = async function (req, res, next) {
 }
 
 exports.signUp = (function (req, res, next) {
-  const imagePath = '/images/users/' + new Date().getTime() + '.jpg'
+  const imagePath = new Date().getTime();
+
   validateUser(req.body).then((data) => {
+    console.log("data " , data);
     console.log("inside vlaidate user return promise", data);
     if (data != null) {
       if (data.err == true) {
@@ -111,10 +107,9 @@ exports.signUp = (function (req, res, next) {
       }
       else {
 
-        console.log("inside else");
 
         const pass = bcrypt.encodeSync(req.body.password)
-        new User({
+       let user =  new User({
           username: req.body.username,
           email: req.body.email,
           password: pass,
@@ -123,24 +118,30 @@ exports.signUp = (function (req, res, next) {
           location: req.body.location,
           totalVoilation: 0,
           followers: [],
-          profilePicture: imagePath
-        }).save().then((data) => {
-          console.log("inside vlaisave user ");
+         profilePicture : null
 
-          if (data != null) {
-            saveImage(req, imagePath).then((imageUplader) => {
-              console.log("save image");
-              if (imageUplader == 1) {
-                res.send("User Successfully created")
-              }
-              else if (imageUplader == 0 || -1) {
-                data.profilePicture = null;
-                data.save();
-                res.send("User Successfully created")
-              }
-            })
+        });
+        
+        if(req.files!=null){
+        let postImages = req.files.images instanceof Array ? req.files.images : [req.files.images]
+
+         
+            try {
+              let names = fservice.prepareFiles(postImages).renameAs(new String(imagePath)).upload().getNames();
+              if(names[0]!=null){
+                user.profilePicture= imagePath;
+            }
+            
+          } catch (e) {
+              throw new Error(e);
           }
-        })
+        }
+          user.save().then((err)=>{
+           
+              res.sendStatus(201);
+            
+          })
+        
       }
 
     }
@@ -210,29 +211,33 @@ exports.login = (function (req, res) {
     })
   })
 
-  async function validateUser(user) {
+ async function validateUser(user) {
     const email = user.email;
     const password = user.password;
     const username = user.username;
-    const result = {};
+    let result = {};
     let err = false;
 
+    
+  result.userExist = await User.findOne({ email: email }).then((data) => {
+      console.log("message...........................",data)
+      if (data != null) {
+        result.emailExist = true;
+        err = true;
+      }
+
+    })
+
+   result.usrNameExist =  await User.findOne({ username: username }).then((data) => {
+      if (data != null) {
+        result.usernameTaken = true;
+        err = true;
+      }
+    })
     if (/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(email) == false) {
       result.email = { error: true, message: "you have entered invalid Email" }
       err = true;
     }
-    User.findOne({ email: email }).then((data) => {
-      if (data != null) {
-        result.email.exist = true;
-        err = true;
-      }
-    }).catch(() => { });
-    User.findOne({ username: username }).then((data) => {
-      if (data != null) {
-        result.username = { message: "username taken" };
-        err = true;
-      }
-    }).catch(() => { });
 
     if (password.length < 8) {
       result.password = { error: true, message: "password must be 8 or above" }
@@ -240,8 +245,8 @@ exports.login = (function (req, res) {
     }
 
     result.err = err;
-    console.log("validate User");
-    return await result;
+    
+  return result;  
   }
 
 
