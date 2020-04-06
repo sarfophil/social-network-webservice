@@ -31,7 +31,7 @@ exports.login = (function(req,res) {
 })
 
 //update profile 
-exports.updateProfile = (function (req, res, next) {
+exports.updateProfilePic = (function (req, res, next) {
   const userId = req.params.userId;
   const image = req.files.image
   const mimetype = req.files.mimetype;
@@ -174,7 +174,7 @@ exports.unfollowUser = async function (req, res, next) {
     res.status(200).send('unfollowing  successfully');
   }
 
-
+}
 exports.login = (function (req, res) {
     const username = req.body.username;
     const password = req.body.password;
@@ -192,10 +192,12 @@ exports.login = (function (req, res) {
       } else {
         res.sendStatus(403)
       }
+    }).catch((err) => {
+      throw new Error(err);
     })
   })
 
-  async function validitUser(user) {
+  async function validateUser(user) {
     const email = user.email;
     const password = user.password;
     const username = user.username;
@@ -228,6 +230,8 @@ exports.login = (function (req, res) {
     console.log("validate User");
     return await result;
   }
+
+
   async function saveImage(req, imagePath) {
 
     console.log(req.files);
@@ -247,7 +251,7 @@ exports.login = (function (req, res) {
 
     return 0;
   }
-}
+
 
 
 // delete Account

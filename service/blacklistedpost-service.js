@@ -27,7 +27,7 @@ const blacklistedPostServiceImpl = {
      * @param {Function} callback 
      * @param {Number} skip 
      */
-    'loadblacklistPost': function(limit,callback,skip){
+    'loadblacklistPost': function(limit,skip,callback){
         blacklistPostModel.find((err,doc)=>{
             if(err) throw new Error("An Error Occured")
             callback(doc);
