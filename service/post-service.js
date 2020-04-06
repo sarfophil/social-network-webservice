@@ -12,9 +12,10 @@ const uploadPath = require('../public/upload-path').getPath;
 
 const postService = {
     create: (function (req, res, next) {
-
+        const imageName = new String(new Date().getTime());
         let post = new Post({
-            "user": mongoose.Types.ObjectId('5e87e715dda9d87aaf676720'),
+            "imageLink": imageName,
+            "user": mongoose.Types.ObjectId('5e8b0d354c155921222341e6'),
             "content": req.body.content,
             "audienceCriteria": JSON.parse(req.body.audienceCriteria),
             "audienceLocation": JSON.parse(new String(req.body.audienceLocation).trim()),
@@ -25,31 +26,33 @@ const postService = {
 
 
         post.createOrUpdatePost().then((data) => {
-            if (req.files != null) {
+
+            console.log("createOrUpdatePost",data);
+            
+            if (data.isActive === false) {
+                res.status(403); res.send({ error: true, message: "your account has been deactivated" });
+            }
+            else if (data.ExceedUNhealthyPost === true) {
+                res.send({ error: true, message: "you have exceded number of unhelthy post your; account has been deactivated; you will rescive email shortly " });
+            }
+
+            else if (req.files != null) {
                 let postImages = req.files.images instanceof Array ? req.files.images : [req.files.images]
 
                 try {
-                    const imageName = new Date().getTime()
                     let names = fservice.prepareFiles(postImages).renameAs(new String(imageName)).upload().getNames();
-                    data.imageLink = names[0];
-                    data.save();
-                    res.send({ post: req.body, imageUpload: { eror: true, message: "post created successfully" } });
+                    res.send({ data: req.body, imageUpload: { eror: true, message: "post created successfully" } });
 
                 } catch (e) {
-                    res.send({ post: req.body, imageUpload: { eror: true, message: "unabele to upload file" } });
-                    res.sendStatus(500)
+                    throw new Error(err);
                 }
 
             }
             else {
-                data.imageLink = null;
-                data.save();
-                res.send({ post: req.body, imageUpload: { eror: false, message: "image not provided!" } });
+                post.imageLink = null;
+                data.post.then(()=>{post.save();})
+                res.send({eror: false, message: "i" } );
             }
-
-
-
-
         }).catch((err) => {
             throw new Error(err);
         })
@@ -109,17 +112,17 @@ const postService = {
             if (req.files != null) {
                 let postImages = req.files.images instanceof Array ? req.files.images : [req.files.images]
                 try {
-                    console.log("i path ",post);
+                    console.log("i path ", post);
 
-                   
-                    console.log("image name1",imageName);
+
+                    console.log("image name1", imageName);
                     let names = fservice.prepareFiles(postImages).renameAs(new String(new Date().getTime())).upload().getNames();
-                    
+
                     if (post.imageLink[0] != null && names[0] != null) {
 
-                        ipath =  'public/uploads/'+post.imageLink[0];
-                        console.log("ipath ",ipath);
-                        console.log("names[0] ",names);
+                        ipath = 'public/uploads/' + post.imageLink[0];
+                        console.log("ipath ", ipath);
+                        console.log("names[0] ", names);
 
                         imageName = names[0];
                         // fileSystem.unlinkSync(path.join(ipath), (err) => {
@@ -128,13 +131,13 @@ const postService = {
                         //     }
                         // });
                     }
-                    
-                } catch(e) {
-                   console.log(e);
+
+                } catch (e) {
+                    console.log(e);
                 }
             }
 
-            console.log("image name2",imageName)
+            console.log("image name2", imageName)
             post.imageLink = imageName;
             post.content = req.body.content;
             post.updatedDate = Date.now(),

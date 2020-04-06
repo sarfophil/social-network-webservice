@@ -3,7 +3,7 @@
  */
 const mongoose = require('mongoose');
 const User = require('../model/user').getModel
-const blacklistKeywords = require('../model/blacklistedkeyword');
+const BlacklistKeywords = require('../model/blacklistedkeyword');
 const BlacklistedPost = require('../model/blacklistedPost')
 "use strict";
 const nodemailer = require("../util/nodemailer");
@@ -73,21 +73,39 @@ postSchema.virtual('totalLikes').get(() => this.likes.length)
 
 //create Post
 postSchema.methods.createOrUpdatePost = async function() {
-    return await  validatePostContent(this.content).then((isUnhealty) => {
-          console.log(isUnhealty);
-          if (isUnhealty) {
-              this.isHealthy = 'no';
-              ExceedUNhealthyPost();
-              new BlacklistedPost({
-                  "post": this,
-              }).save().then(() => { }).catch(err => { throw new Error(err) });
-              return this.save()
-          }
-          else {
-              this.isHealthy = 'yes';
-              return this.save();
-          }
-      })
+    console.log(this);
+
+   return User.findById(this.user).then((user)=>{
+        console.log(user)
+        if(user.isActive == false){
+        return {"isActive":false};
+        
+        }
+        else {
+             return  validatePostContent(this.content).then((isUnhealty) => {
+
+                if (isUnhealty) {
+                    this.isHealthy = 'no';
+                    ExceedUNhealthyPost(this.user).then((result)=>{
+                        if(result)
+                      return  {"ExceedUNhealthyPost":true};
+                    })
+                    console.log("I am here")
+                    
+                    new BlacklistedPost({
+                        "post": this,
+                    }).save().then(() => { }).catch(err => { throw new Error(err) });
+                    return  {post:this.save(),eror:false};
+                }
+                else {
+                    this.isHealthy = 'yes';
+                    return  {post:this.save(),error:false};
+                }
+            })
+        }
+    })
+
+     
   
   }
 
@@ -98,41 +116,43 @@ postSchema.statics.getAudienceFollowers = (async function (id) {
 
 
 //filtering unhealthy post
-function validatePostContent(content) {
-    return result = blacklistKeywords.find().then((data) => {
-        var isUnhealty = false;
-
+function  validatePostContent(content) {
+     return result = BlacklistKeywords.find().then((data) => {
+        let isUnhealty = false;
         data.findIndex(data => {
             isUnhealty = content.includes(data.word)
-            if (isUnhealty) return true;
+            console.log("data",isUnhealty);
+            isUnhealty = true
         })
         return isUnhealty;
-    }).catch((err) => console.log(err))
+    });
 
 }
+const postModel = mongoose.model('post',postSchema);
 
 /*************Account validation****************
 For malicious users (e.g. if the user has more than 20 unhealthy posts)
 the account should automatically be deactivated
 and notify user by email at the same time.
 */
+async function ExceedUNhealthyPost(userId) {
+   
 
-async function ExceedUNhealthyPost() {
-    const userId = this.user;
-    return val = db.posts.find({ 'user': userId, 'healthy': false }).count().then((number) => {
+    return val =postModel.find({ 'user': userId, 'isHealthy': false }).count().then((number) => {
         User.findById(userId).then((user) => {
+            console.log("totalVoilation",number +"  " );
             user.totalVoilation = number;
-            if (number >= 20) {
+            if (number >= 9) {
                 user.isActive = false;
                 nodemailer.subject("Account Deactivation").
-                    text("your Account has been deactivated becouse you have exsceded more than " + number + " unhealthy posts.")
+                    text("your Account has been deactivated  " + number + " unhealthy posts.")
                     .to(user.email).sendEmail((val) => {
                         console.log(val);
                     });
 
             }
             user.save();
-            return user.totalVoilation >= 50 ? true : false;
+            return user.totalVoilation >= 9 ? true : false;
         }).catch((err) => {
             throw new Error(err);
         })
@@ -141,7 +161,7 @@ async function ExceedUNhealthyPost() {
 }
 
 
-const postModel = mongoose.model('post',postSchema);
+
 
 
 
