@@ -22,5 +22,8 @@ router.get('/:postId/audienceFollowers',postService.getAudienceFollowers);
 router.get('/:postId/likes',postService.getlikes);
 // Get All posts
 router.get('/',postService.getAll);
-
+//deletePost
+router.delete('/:postId',postService.delete)
+//updatePost
+router.put('/:postId',postService.update)
 module.exports = router;

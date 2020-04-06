@@ -7,7 +7,7 @@ const jwt = require('../util/jwt')
 
 
 // Add Permitted Routes to the array
-const allowedRoutes = ['/user/login','/user/account','/admin/login']
+const allowedRoutes = ['/user/login','/user/account','/posts/create','/admin/login']
 
 function shouldPermit(pathName) {
     let flag = Utils.find(allowedRoutes,(route) => route == pathName)
@@ -22,7 +22,8 @@ const security = {
                 let token = bearer.substring(7);
                 jwt.verify(token,(err,decoded) => {
                     if(err){
-                        res.sendStatus(401)
+                        next()
+                    
                     }else{   
                         // Adds user info to the request after verifying
                         req.principal = decoded
@@ -30,7 +31,7 @@ const security = {
                     }
                 })
             }else{   
-                res.sendStatus(401)
+                next()
             }
         }else{     
             next()
