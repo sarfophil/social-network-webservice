@@ -102,7 +102,6 @@ exports.followUser = async function (req, res, next) {
 }
 
 exports.signUp = (function (req, res, next) {
-  console.log("", req.files)
   const imagePath = '/images/users/' + new Date().getTime() + '.jpg'
   validitUser(req.body).then((data) => {
     console.log("inside vlaidate user return promise", data);
@@ -261,4 +260,23 @@ exports.login = (function (req, res) {
 
     return 0;
   }
+}
+
+
+// delete Account
+exports.deleteAccount = (req, res, next) => {
+  user.remove({ _id: req.params.userId })
+    .exec()
+    .then(result => {
+      res.status(200).json({
+        message: "User deleted"
+      });
+    })
+    .catch(err => {
+      console.log(err);
+     
+      res.status(500).json({
+        error: err
+      });
+    });
 }
