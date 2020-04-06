@@ -5,8 +5,8 @@ const nodemailer = require('nodemailer');
 
 /**Testing purposes */
 const transport = {
-    host: 'localhost',
-    port: 1025,
+    host: 'email-smtp.us-east-1.amazonaws.com',
+    port: 465,
     auth: {
         user: 'project.1',
         pass: 'secret.1'
@@ -17,7 +17,7 @@ const transport = {
 const transporter = nodemailer.createTransport(transport)
 
 const emailTemplate = {
-    from: 'social-media@org.com',
+    from: 'ymengistu@miu.edu',
     to: [],
     subject: '',
     text: ''
