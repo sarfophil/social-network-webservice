@@ -2,6 +2,10 @@ var express = require('express');
 var router = express.Router();
 const postService = require('../service/post-service')
 
+const searchService = require('../service/search-service')
+
+const bcrypt = require('../util/bcrypt')
+const jwt = require('../util/jwt')
 
 
 

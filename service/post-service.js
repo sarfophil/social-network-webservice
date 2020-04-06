@@ -97,6 +97,7 @@ function ExceedUNhealthyPost(id) {
 async function saveImage(req, imagePath) {
     if(req.files!=null&&req.files.avatar!=null){
     const avatar = req.files.avatar;
+
     imageUplader.upload(imagePath,avatar.mimetype,avatar.data,(cb) => {
       if (cb == -1) {
         return null;

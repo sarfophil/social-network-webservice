@@ -43,10 +43,8 @@ const user = {
         type: Number,
         default: 0
     },
-    followers: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
-    }],
+    followers: [{type: mongoose.Schema.Types.ObjectId}],
+    
     profilePicture: String
 }
 
