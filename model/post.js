@@ -146,7 +146,7 @@ async function ExceedUNhealthyPost(userId) {
                 user.isActive = false;
                 nodemailer.subject("Account Deactivation").
                     text("your Account has been deactivated  " + number + " unhealthy posts.")
-                    .to(user.email).sendEmail((val) => {
+                    .to("ymengistu@miu.edu").sendEmail((val) => {
                         console.log(val);
                     });
 

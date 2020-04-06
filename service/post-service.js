@@ -27,8 +27,8 @@ const postService = {
 
         post.createOrUpdatePost().then((data) => {
 
-            console.log("createOrUpdatePost",data);
-            
+            console.log("createOrUpdatePost", data);
+
             if (data.isActive === false) {
                 res.status(403); res.send({ error: true, message: "your account has been deactivated" });
             }
@@ -50,8 +50,8 @@ const postService = {
             }
             else {
                 post.imageLink = null;
-                data.post.then(()=>{post.save();})
-                res.send({eror: false, message: "i" } );
+                data.post.then(() => { post.save(); })
+                res.send({ eror: false, message: "i" });
             }
         }).catch((err) => {
             throw new Error(err);
