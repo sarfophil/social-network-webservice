@@ -7,8 +7,6 @@ const searchService = require('../service/search-service')
 const bcrypt = require('../util/bcrypt')
 const jwt = require('../util/jwt')
 
-
-
 // search post
 router.get('/search',postService.search)
 

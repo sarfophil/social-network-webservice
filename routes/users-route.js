@@ -18,7 +18,7 @@ router.post('/account',userService.signUp)
 router.post('/login', userService.login);
 
 // Update Profile
-router.post(':userId/updateProfile/',userService.updateProfile);
+router.put('/:userId',userService.updateProfilePic);
 
 // Deactivate Account
 router.delete("/:userId", userService.deleteAccount);
