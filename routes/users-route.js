@@ -21,21 +21,6 @@ router.post('/login', userService.login);
 router.post(':userId/updateProfile/',userService.updateProfilePic);
 
 // Deactivate Account
-router.delete("/:userId", (req, res, next) => {
-  user.remove({ _id: req.params.userId })
-    .exec()
-    .then(result => {
-      res.status(200).json({
-        message: "User deleted"
-      });
-    })
-    .catch(err => {
-      console.log(err);
-     
-      res.status(500).json({
-        error: err
-      });
-    });
-});
+router.delete("/:userId", userService.deleteAccount);
 
 module.exports = router;
