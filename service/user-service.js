@@ -247,7 +247,7 @@ exports.login = (function (req, res) {
 
     
   result.userExist = await User.findOne({ email: email }).then((data) => {
-      console.log("message...........................",data)
+      console.log("message.",data)
       if (data != null) {
         result.emailExist = true;
         err = true;
