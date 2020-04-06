@@ -24,8 +24,7 @@ const postSchema = new Schema({
         default: Date.now
     },
     updatedDate: {
-        type: Date,
-        default: null
+        type: Date
     },
     likes: [{
         user: {
@@ -59,7 +58,9 @@ const postSchema = new Schema({
     postuname: String   // Field used for Full text search
 });
 
-
+postSchema.methods.removeFromCart =async function() {
+     return await 1;
+}
 
 
 // Create Index
@@ -71,27 +72,28 @@ postSchema.index({ postuname: "text" })
 postSchema.virtual('totalLikes').get(() => this.likes.length)
 
 //create Post
-postSchema.methods.createPost = async function createPost() {
-    validatePostContent(this.content).then((isUnhealty) => {
-        // console.log(isUnhealty);
-        if (isUnhealty) {
-            this.isHealthy = 'no';
-            ExceedUNhealthyPost();
-            new BlacklistedPost({
-                "post": this,
-            }).save().then(() => { }).catch(err => { throw new Error(err) });
-            return this.save()
-        }
-        else {
-            this.isHealthy = 'yes';
-            return this.save();
-        }
-    })
+postSchema.methods.createOrUpdatePost = async function() {
+    return await  validatePostContent(this.content).then((isUnhealty) => {
+          console.log(isUnhealty);
+          if (isUnhealty) {
+              this.isHealthy = 'no';
+              ExceedUNhealthyPost();
+              new BlacklistedPost({
+                  "post": this,
+              }).save().then(() => { }).catch(err => { throw new Error(err) });
+              return this.save()
+          }
+          else {
+              this.isHealthy = 'yes';
+              return this.save();
+          }
+      })
+  
+  }
 
-}
 
 postSchema.statics.getAudienceFollowers = (async function (id) {
-
+  
 });
 
 
@@ -116,28 +118,34 @@ and notify user by email at the same time.
 */
 
 async function ExceedUNhealthyPost() {
-    // const userId = this.user;
-    // return val = db.posts.find({ 'user': userId, 'healthy': false }).count().then((number) => {
-    //     User.findById(userId).then((user) => {
-    //         user.totalVoilation = number;
-    //         if (number >= 20) {
-    //             user.isActive = false;
-    //             nodemailer.subject("Account Deactivation").
-    //             text("your Account has been deactivated becouse you have exsceded more than " + number + " unhealthy posts." )
-    //             .to(user.email).sendEmail((val)=>{
-    //                 console.log(val);
-    //             });
-                    
-    //         }
-    //         user.save();
-    //         return user.totalVoilation >= 50 ? true : false;
-    //     }).catch((err) => {
-    //         throw new Error(err);
-    //     })
-    // });
+    const userId = this.user;
+    return val = db.posts.find({ 'user': userId, 'healthy': false }).count().then((number) => {
+        User.findById(userId).then((user) => {
+            user.totalVoilation = number;
+            if (number >= 20) {
+                user.isActive = false;
+                nodemailer.subject("Account Deactivation").
+                    text("your Account has been deactivated becouse you have exsceded more than " + number + " unhealthy posts.")
+                    .to(user.email).sendEmail((val) => {
+                        console.log(val);
+                    });
+
+            }
+            user.save();
+            return user.totalVoilation >= 50 ? true : false;
+        }).catch((err) => {
+            throw new Error(err);
+        })
+    });
 
 }
 
-// Post Model
-exports.getModel = mongoose.model('post', postSchema);
 
+const postModel = mongoose.model('post',postSchema);
+
+
+
+module.exports = {
+    'getSchema': postSchema,
+    'getModel': postModel
+}

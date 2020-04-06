@@ -12,11 +12,10 @@ const postService = {
     create: (function (req, res, next) {
 
         const rootPth = path.dirname(process.mainModule.filename);
-        const avatar = req.files.avatar;
         const imagePath = '/images/posts/' + new Date().getTime() + '.jpg'
 
-        
-        const post = new Post({
+
+        let post = new Post({
             "user": mongoose.Types.ObjectId('5e87e715dda9d87aaf676720'),
             "content": req.body.content,
             "imageLink": imagePath,
@@ -27,21 +26,32 @@ const postService = {
             "likes": null
         });
 
-        post.createPost().then((data) => {
-            saveImage(req, imagePath).then((imageUplader)=>{
-                if(imageUplader!=null){
-                    res.send(req.body);
-                }
-                else {
-                    data.imageLink=null;
-                    data.save();
-                }
-            })
+        
+        post.removeFromCart().then((d)=>console.log(d));
+        post.createOrUpdatePost().then((data) => {
+            console.log("i minside");
+            if ( req.files!= null) {
+                imageUplader.upload(req, imagePath).then((cb) => {
+                    if (cb == 1) {
+                        res.send(req.body);
+                    }
+                    else {
+                        data.imageLink = null;
+                        data.save();
+                        res.send({ post: req.body, imageUpload: { eror: true, message: "unabele to upload file" } });
+                    }
+                }).catch((err) => {
+                    throw new Error(err);
+                })
+            }
+            else {
+                data.imageLink = null;
+                data.save();
+                res.send({ post: req.body, imageUpload: { eror: false, message: "image not provided!" } });
+            }
         }).catch((err) => {
             throw new Error(err);
         })
-
-
     }),
     search: (req, res) => {
         let username = req.query.query;
@@ -85,32 +95,60 @@ const postService = {
             data.populate('likes.user').execPopulate().then((data) => { console.log(data); res.send(data.likes) }).catch((err) => console.log(err));
         })
     },
+    delete: (req, res, next) => {
+        Post.deleteOne(req.params.postId).then(() => {
+            res.send({ error: false, message: "post deleted successfully" });
+        }).catch((err) => { throw new Error(err); })
+    },
+    update: (req, res, next) => {
+         
+        Post.findById(req.params.postId).then((post) => {
+            let flag = false;
+            let imageName = null;
+            if (req.files!= null) {
+                file = req.files.avatar;
+                imageName = new Date().getTime()+'.jpg';
+                imagePath = '/images/posts/' + imageName;
+
+                imageUplader.upload(imagePath, file.mimetype, file.data, function (result) {
+                    console.log("IM age Link",post.imageLink)
+
+                    if (result == 1) {
+
+                        if(post.imageLink[0]!=null){
+                            fileSystem.unlinkSync("public/images/posts/"+post.imageLink[0],(err)=>{
+                                if(err){
+                                    console.log(err);
+                                }
+
+                            });
+                        }
+                    }
+                    else{
+                        imageName = null;
+                    }
+                });
+            }
+                    post.imageLink= imageName;
+                    post.content=req.body.content;
+                    post.updatedDate= Date.now(),
+                    post.content= req.body.content;
+                    post.audienceCriteria= JSON.parse(req.body.audienceCriteria);
+                    post.audienceLocation= JSON.parse(new String(req.body.audienceLocation).trim());
+                    post.audienceFollowers= JSON.parse(req.body.audienceFollowers);
+                    post.notifyFollowers= req.body.notifyFollowers;
+                    post.likes= JSON.parse(req.body.likes);
+                    post.createOrUpdatePost().then(()=>{
+                        res.send({error:false})
+                    }).catch((err)=>{throw new Error(err)});
+
+               
+            
+        })
+    }
 
 }
 
-
-function ExceedUNhealthyPost(id) {
-    Posts.find({ userid: new mongoose.SchemaType.ObjectId(id), healthy: false }).count().then((number) => {
-        console.log(number);
-    })
-}
-async function saveImage(req, imagePath) {
-    if(req.files!=null&&req.files.avatar!=null){
-    const avatar = req.files.avatar;
-
-    imageUplader.upload(imagePath,avatar.mimetype,avatar.data,(cb) => {
-      if (cb == -1) {
-        return null;
-      }
-      else if (cb == 1) {
-        return imageUplader;
-      }
-      
-    })
-  }
-  
-  return 0;
-  }
 
 
 module.exports = postService;

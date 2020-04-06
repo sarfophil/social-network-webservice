@@ -29,7 +29,7 @@ exports.login = (function(req,res) {
 })
 
 //update profile 
-exports.updateProfile = (function (req, res, next) {
+exports.updateProfilePic = (function (req, res, next) {
   const userId = req.params.userId;
   const image = req.files.image
   const mimetype = req.files.mimetype;
