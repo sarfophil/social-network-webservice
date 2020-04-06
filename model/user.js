@@ -11,13 +11,13 @@ const user = {
         type: String,
         required: true
     },
-    email:{
+    email: {
         type: String,
         required: true,
         // validates email if correct and has not been taken by any user
-        validate:{
-            validator: (email) =>{
-              return /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(email);
+        validate: {
+            validator: (email) => {
+                return /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(email);
             },
             message: props => `${props.value} Validation failed`
         }
@@ -30,43 +30,43 @@ const user = {
         type: Number,
         required: true
     },
-    isActive:{
+    isActive: {
         type: Boolean,
         default: true
     },
-    location:{
+    location: {
         type: Array
     },
-    createdDate: {type:Date, default: Date.now},
+    createdDate: { type: Date, default: Date.now },
 
     totalVoilation: {
         type: Number,
         default: 0
     },
-    followers: [{type: mongoose.Schema.Types.ObjectId}],
+    followers: [{ref:'user',type: mongoose.Schema.Types.ObjectId}],
     
     profilePicture: String
 }
 
 const userSchema = new mongoose.Schema(user);
-const userModel = mongoose.model('user',userSchema);
+const userModel = mongoose.model('user', userSchema);
 
 // virtuals
-userSchema.virtual('number_of_followers').get(()=> this.followers.length)
+userSchema.virtual('number_of_followers').get(() => this.followers.length)
 userSchema.virtual('addVoilation')
-            .set(()=> this.totalVoilation += 1)
-            .get(()=> this.totalVoilation)
+    .set(() => this.totalVoilation += 1)
+    .get(() => this.totalVoilation)
 userSchema.virtual('addFollower')
-            .set((follower) => {
-                if(this._id != follower._id){    
-                    this.followers.push(follower)
-                }else{
-                    throw new Error('Operation forbidden')
-                }
-            })
+    .set((follower) => {
+        if (this._id != follower._id) {
+            this.followers.push(follower)
+        } else {
+            throw new Error('Operation forbidden')
+        }
+    })
 
 
-const userDomain  = {
+const userDomain = {
     'getModel': userModel,
     'getSchema': userSchema
 }

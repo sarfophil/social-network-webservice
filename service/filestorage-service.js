@@ -68,7 +68,7 @@ const uploadModule = {
                         let result = []
                         processImages.forEach(image => {
                             // move files to server directory
-                            image.mv(uploadDirectory.getPath().concat(image.name),(err) => {  
+                            image.mv(uploadDirectory.getPath().concat(image.name),(err) => { 
                                 if(err){
                                     throw new Error('Unable to upload pictures')
                                 }
