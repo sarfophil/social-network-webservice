@@ -44,9 +44,46 @@ const postService = {
         searchService.search(username,limit,(err,doc) => {
             res.status(200).send(doc)
         })
-    }
+    },
+getById:(req, res, next) => {
+    const id = req.params.postId;
+    Post.findById(id).then((data) => {
+        res.send(data);
+    }).catch((err) => { res.send(err) });
+},
+getAudienceFollowers :(req, res, next) => {
+    const id = req.params.postId;
+    Post.findById(id).then((data) => {
+        if (data == null) {
+            res.send(data);
+        }
+        else
+            data.populate('audienceFollowers.user').execPopulate().then((data) => { res.send(data.audienceFollowers) }).catch((err) => console.log(err));
+    })
+},
+getAll : async (req, res, next) => {
+    const page = new Number(req.query.page);
+    const limit = new Number(req.query.limit);
+    let posts = await Post.find({})
+        .limit(limit).skip(page*limit)
+        .sort({'createdDate':1})
+        .exec(function (err, docs) {
+            if (err) throw new Error(err)
+            res.send(docs);
+        });
+
+},
+getlikes : (req, res, next) => {
+    const id = req.params.postId;
+    Post.findById(id).then((data) => {
+
+        data.populate('likes.user').execPopulate().then((data) => { console.log(data); res.send(data.likes) }).catch((err) => console.log(err));
+    })
+},
 
 }
+
+
 
 
 

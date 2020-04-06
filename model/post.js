@@ -27,8 +27,10 @@ const postSchema = new Schema({
         default: null
     },
     likes: [{
-        type: mongoose.Schema.Types.ObjectId,
-        required: false,
+        user: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: User
+        }
     }],
     isHealthy: Boolean,
     audienceCriteria: {
@@ -85,6 +87,10 @@ postSchema.methods.createPost = async function createPost() {
     })
 
 }
+
+postSchema.statics.getAudienceFollowers = (async function (id) {
+
+});
 
 
 //filtering unhealthy post
