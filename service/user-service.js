@@ -29,7 +29,7 @@ exports.login = (function(req,res) {
 })
 
 //update profile 
-exports.updateProfile = (function (req, res, next) {
+exports.updateProfilePic = (function (req, res, next) {
   const userId = req.params.userId;
   const image = req.files.image
   const mimetype = req.files.mimetype;
@@ -103,7 +103,7 @@ exports.followUser = async function (req, res, next) {
 
 exports.signUp = (function (req, res, next) {
   const imagePath = '/images/users/' + new Date().getTime() + '.jpg'
-  validitUser(req.body).then((data) => {
+  validateUser(req.body).then((data) => {
     console.log("inside vlaidate user return promise", data);
     if (data != null) {
       if (data.err == true) {
@@ -187,7 +187,7 @@ exports.unfollowUser = async function (req, res, next) {
     res.status(200).send('unfollowing  successfully');
   }
 
-
+}
 exports.login = (function (req, res) {
     const username = req.body.username;
     const password = req.body.password;
@@ -205,10 +205,12 @@ exports.login = (function (req, res) {
       } else {
         res.sendStatus(403)
       }
+    }).catch((err) => {
+      throw new Error(err);
     })
   })
 
-  async function validitUser(user) {
+  async function validateUser(user) {
     const email = user.email;
     const password = user.password;
     const username = user.username;
@@ -241,6 +243,8 @@ exports.login = (function (req, res) {
     console.log("validate User");
     return await result;
   }
+
+
   async function saveImage(req, imagePath) {
 
     console.log(req.files);
@@ -260,7 +264,7 @@ exports.login = (function (req, res) {
 
     return 0;
   }
-}
+
 
 
 // delete Account
