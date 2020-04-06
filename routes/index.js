@@ -12,12 +12,9 @@ router.post('/upload-demo',function(req,res,next) {
   let postImages = req.files.images instanceof Array ? req.files.images : [req.files.images]
 
   try{
-    fservice.prepareFiles(postImages)
-            .renameAs('loremipsum')
-            .upload((result) => {
-              console.log(`${result}`)
-              res.sendStatus(200)
-            })
+    let names = fservice.prepareFiles(postImages).renameAs('loremipsum').upload().getNames();
+    console.log(names)
+    res.sendStatus(200)
   }catch(e){
       console.log(`${e}`)
       res.sendStatus(500)

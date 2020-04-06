@@ -6,7 +6,7 @@
  */
 
 const allowedMimeType = ['image/jpeg','image/png']
-const uploadDirectory = require('../public/uploads/upload-path')
+const uploadDirectory = require('../public/upload-path')
 
 
 
@@ -35,7 +35,7 @@ const uploadModule = {
     prepareFiles: function(images) {
         if(images instanceof Array){
             images.forEach(image => {
-                if(validateImageExtension(image.mimetype)) throw new Error('Invalid File Extension')
+                if(!validateImageExtension(image.mimetype)) throw new Error('Invalid File Extension')
                 else{
                     processImages.push(image)
                 }
@@ -45,7 +45,7 @@ const uploadModule = {
             if(images)
                 processImages.push(images)
         }
-        
+
         return {
              /**
              * Method renames all images provided
@@ -57,25 +57,29 @@ const uploadModule = {
                     const getExtension = image.name.split('.')
                     image.name = pattern.concat(count++).concat('.').concat(getExtension[1])
                 })
+
+                
                 return {
                     /**
                      * Method is finally called to move files to the upload directory
                      * @param {Function} callback 
                      */
-                    upload: function(callback){
+                    upload:  function(){
                         let result = []
                         processImages.forEach(image => {
                             // move files to server directory
                             image.mv(uploadDirectory.getPath().concat(image.name),(err) => {  
                                 if(err){
                                     throw new Error('Unable to upload pictures')
-                                }else{
-                                    result.push(image.name)
                                 }
                             })
-                        })
 
-                        callback(result)
+                            // Add image names
+                            result.push(image.name)
+                        })
+                        return {
+                            getNames: () => result
+                        }
                     }
                 };
             }
