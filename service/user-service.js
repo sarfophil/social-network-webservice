@@ -1,7 +1,7 @@
 
 const ObjectId = require('mongodb').ObjectId
 const User = require('../model/user').getModel;
-
+const Utils = require('../util/apputil');
 const bcrypt = require('../util/bcrypt')
 const jwt = require('../util/jwt')
 const path = require('path');
@@ -10,24 +10,24 @@ const imageUplader = require('../util/imageUploader');
 const fservice = require('../service/filestorage-service');
 const uploadPath = require('../public/upload-path').getPath;
 
-exports.login = (function(req,res) {
-    const username = req.body.username;
-    const password = req.body.password;
-    UserModel.findOne({$or : [{username: {$eq: username}},{email: {$eq: username}}]},function (err,user) {
-      if(err) res.statusCode(403)
-      let comparePassword = bcrypt.compareSync(password,user.password) 
-      if(comparePassword){
-        jwt.sign(user,(err,token) => {
-          if(err) {
-              res.status(500).send('Unable to sign token')
-          }else{ 
-            res.status(200).send({access_token: token})
-          }
-        })
-      }else{
-        res.sendStatus(403)
-      }
-    })
+exports.login = (function (req, res) {
+  const username = req.body.username;
+  const password = req.body.password;
+  UserModel.findOne({ $or: [{ username: { $eq: username } }, { email: { $eq: username } }] }, function (err, user) {
+    if (err) res.statusCode(403)
+    let comparePassword = bcrypt.compareSync(password, user.password)
+    if (comparePassword) {
+      jwt.sign(user, (err, token) => {
+        if (err) {
+          res.status(500).send('Unable to sign token')
+        } else {
+          res.status(200).send({ access_token: token })
+        }
+      })
+    } else {
+      res.sendStatus(403)
+    }
+  })
 })
 
 //update profile 
@@ -52,6 +52,33 @@ exports.updateProfilePic = (function (req, res, next) {
                 }
 
 })
+
+
+// retrieve all follwers of a user
+exports.getUserFollower = async function (req, res, next) {
+  const user = await User.findOne({ _id: req.params.userId });
+  let results = [];
+  for (follower of user.followers) {
+    foll = await User.aggregate([{ $match: { _id: follower } }]).project({
+      username: 1,
+      email: 1,
+      age: 1,
+      profilePicture: 1
+    });
+
+    results.push(foll);
+  }
+
+  let flatResult = Utils.flatMap(results,functor=>{
+    return functor[0];
+  });
+  Promise.resolve(flatResult)
+    .then(f => {
+      res.status(200).send(f);
+    })
+    .catch(err => new Error(err));
+}
+
 
 // Post to Follow  user 
 exports.followUser = async function (req, res, next) {
@@ -188,7 +215,7 @@ exports.unfollowUser = async function (req, res, next) {
     res.status(200).send('unfollowing  successfully');
   }
 
-}
+
 exports.login = (function (req, res) {
     const username = req.body.username;
     const password = req.body.password;
@@ -283,7 +310,7 @@ exports.deleteAccount = (req, res, next) => {
     })
     .catch(err => {
       console.log(err);
-     
+
       res.status(500).json({
         error: err
       });
