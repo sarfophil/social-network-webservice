@@ -11,10 +11,12 @@ const imageUplader = require('../util/imageUploader');
 exports.login = (function(req,res) {
     const username = req.body.username;
     const password = req.body.password;
-    UserModel.findOne({$or : [{username: {$eq: username}},{email: {$eq: username}}]},function (err,user) {
+
+    User.findOne({$or : [{username: {$eq: username}},{email: {$eq: username}}]},function (err,user) {
       if(err) res.statusCode(403)
       let comparePassword = bcrypt.compareSync(password,user.password) 
       if(comparePassword){
+        // sign token 
         jwt.sign(user,(err,token) => {
           if(err) {
               res.status(500).send('Unable to sign token')
@@ -34,8 +36,7 @@ exports.updateProfile = (function (req, res, next) {
   const image = req.files.image
   const mimetype = req.files.mimetype;
   const imagePath = path.join('/images/posts/' + new Date().getTime() + '.jpg');
-  //console.log(imagePath);
-
+ 
   if (image != null && (mimetype != 'image/jpeg' || mimetype != 'image/jpg' || mimetype != 'image/png')) {
     User.findOne(userId).then((user) => {
       if (user != null) {
@@ -101,53 +102,39 @@ exports.followUser = async function (req, res, next) {
 
 }
 
-exports.signUp = (function (req, res, next) {
-  const imagePath = '/images/users/' + new Date().getTime() + '.jpg'
-  validitUser(req.body).then((data) => {
-    console.log("inside vlaidate user return promise", data);
-    if (data != null) {
-      if (data.err == true) {
-        res.send(data);
-      }
-      else {
+// Account creation
+exports.signUp = function(req,res) {
+  let requestBody = req.body
+ 
+  // hash password
+  requestBody.password = bcrypt.encodeSync(requestBody.password)
 
-        console.log("inside else");
+  let user = new User(requestBody);
 
-        const pass = bcrypt.encodeSync(req.body.password)
-        new User({
-          username: req.body.username,
-          email: req.body.email,
-          password: pass,
-          age: req.body.age,
-          isActive: true,
-          location: req.body.location,
-          totalVoilation: 0,
-          followers: [],
-          profilePicture: imagePath
-        }).save().then((data) => {
-          console.log("inside vlaisave user ");
-
-          if (data != null) {
-            saveImage(req, imagePath).then((imageUplader) => {
-              console.log("save image");
-              if (imageUplader == 1) {
-                res.send("User Successfully created")
-              }
-              else if (imageUplader == 0 || -1) {
-                data.profilePicture = null;
-                data.save();
-                res.send("User Successfully created")
-              }
-            })
+  // validate inputs
+  user.validate().then((response)=>{
+    // checks if user is available
+    User.exists({ $or: [{email: {$eq: user.email}},{username: {$eq: user.username}}] },(err,isExist) => {
+      // if there's any exception
+      if(err){
+        res.sendStatus(500)
+      }else{
+         
+          if(isExist){
+            res.status(200).send('Username/Email already taken another user')
+          }else{ 
+            user.save((err,doc) => err? res.sendStatus(500): res.sendStatus(201))
           }
-        })
       }
+      
+    })
+     
+    }).catch(err => {
+      res.status(400).send('Invalid Inputs. Please check your inputs')
+    })
+}
 
-    }
-  }).catch((err) => {
-    throw new Error(err);
-  })
-})
+
 // Post to Unfollow  user 
 exports.unfollowUser = async function (req, res, next) {
   let userId = req.params.userId;

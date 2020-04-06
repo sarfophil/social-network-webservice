@@ -22,6 +22,49 @@ const validateImageExtension = function (mimeType) {
 
 let processImages = []
 
+
+/**
+ * Method renames all images provided
+ * @param {string} pattern is used to rename files. It can be a post Id or user Id
+ */
+function rename(pattern){
+    let count = 0;
+    images.forEach(image => {
+        const getExtension = image.name.split('.')
+        image.name = pattern.concat(count++).concat('.').concat(getExtension[1])
+    })
+
+    
+    return {
+        upload: upload
+    };
+}
+
+/**
+ * Method is finally called to move files to the upload directory
+ * @param {Function} callback 
+ */
+function upload(){
+    let result = []
+    processImages.forEach(image => {
+        // move files to server directory
+        image.mv(uploadDirectory.getPath().concat(image.name),(err) => {  
+            if(err){
+                throw new Error('Unable to upload pictures')
+            }
+        })
+
+        // Add image names
+        result.push(image.name)
+    })
+    return {
+        getNames: () => result
+    }
+}
+
+
+
+
 /**
  * Upload Module for moving files to our server.
  * Before image can be uploaded, it should process 2 stages before uploading
@@ -47,42 +90,7 @@ const uploadModule = {
         }
 
         return {
-             /**
-             * Method renames all images provided
-             * @param {string} pattern is used to rename files. It can be a post Id or user Id
-             */
-            renameAs: function(pattern){
-                let count = 0;
-                images.forEach(image => {
-                    const getExtension = image.name.split('.')
-                    image.name = pattern.concat(count++).concat('.').concat(getExtension[1])
-                })
-
-                
-                return {
-                    /**
-                     * Method is finally called to move files to the upload directory
-                     * @param {Function} callback 
-                     */
-                    upload:  function(){
-                        let result = []
-                        processImages.forEach(image => {
-                            // move files to server directory
-                            image.mv(uploadDirectory.getPath().concat(image.name),(err) => {  
-                                if(err){
-                                    throw new Error('Unable to upload pictures')
-                                }
-                            })
-
-                            // Add image names
-                            result.push(image.name)
-                        })
-                        return {
-                            getNames: () => result
-                        }
-                    }
-                };
-            }
+             renameAs: rename
         };
     },
    
