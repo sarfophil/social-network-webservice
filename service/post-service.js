@@ -15,7 +15,7 @@ const postService = {
         const imageName = new String(new Date().getTime());
         let post = new Post({
             "imageLink": imageName,
-            "user": mongoose.Types.ObjectId('5e8b0d354c155921222341e6'),
+            "user": mongoose.Types.ObjectId('5e8bac83e37a22312b353ccc'),
             "content": req.body.content,
             "audienceCriteria": JSON.parse(req.body.audienceCriteria),
             "audienceLocation": JSON.parse(new String(req.body.audienceLocation).trim()),
@@ -27,7 +27,6 @@ const postService = {
 
         post.createOrUpdatePost().then((data) => {
 
-            console.log("createOrUpdatePost", data);
 
             if (data.isActive === false) {
                 res.status(403); res.send({ error: true, message: "your account has been deactivated" });
@@ -40,8 +39,9 @@ const postService = {
                 let postImages = req.files.images instanceof Array ? req.files.images : [req.files.images]
 
                 try {
-                    let names = fservice.prepareFiles(postImages).renameAs(new String(imageName)).upload().getNames();
-                    res.send({ data: req.body, imageUpload: { eror: true, message: "post created successfully" } });
+
+                    let names = fservice.prepareFiles(postImages).renameAs(imageName).upload().getNames();
+                    res.send({ data: req.body, imageUpload: { eror: false, message: "post created successfully" } });
 
                 } catch (e) {
                     throw new Error(err);
@@ -53,8 +53,8 @@ const postService = {
                 data.post.then(() => { post.save(); })
                 res.send({ eror: false, message: "i" });
             }
-        }).catch((err) => {
-            throw new Error(err);
+        }).catch(() => {
+            // throw new Error(err);
         })
     }),
     search: (req, res) => {
@@ -110,20 +110,15 @@ const postService = {
             let flag = false;
             let imageName = null;
             if (req.files != null) {
-                let postImages = req.files.images instanceof Array ? req.files.images : [req.files.images]
+                let postImages = req.files.imageLink instanceof Array ? req.files.images : [req.files.images]
                 try {
-                    console.log("i path ", post);
 
 
-                    console.log("image name1", imageName);
                     let names = fservice.prepareFiles(postImages).renameAs(new String(new Date().getTime())).upload().getNames();
 
                     if (post.imageLink[0] != null && names[0] != null) {
 
                         ipath = 'public/uploads/' + post.imageLink[0];
-                        console.log("ipath ", ipath);
-                        console.log("names[0] ", names);
-
                         imageName = names[0];
                         // fileSystem.unlinkSync(path.join(ipath), (err) => {
                         //     if (err) {
@@ -137,7 +132,6 @@ const postService = {
                 }
             }
 
-            console.log("image name2", imageName)
             post.imageLink = imageName;
             post.content = req.body.content;
             post.updatedDate = Date.now(),
