@@ -5,6 +5,7 @@ const fservice = require('../service/filestorage-service');
 const wsutil = require('../util/ws-events')
 const properties = require('../config/properties')
 const Utils = require('../util/apputil')
+const comment = require('../model/comment')
 
 
 
@@ -232,6 +233,27 @@ const postService = {
 
 
         
+    },
+
+    commentPost: (req,res) => {
+        let requestBody = req.body
+        let postId = req.params.postId
+        let userId = req.params.userId
+        let comment = new Comment({content: requestBody.content,postId: postId,user: userId})
+        let valid = comment.validateSync()
+        if(valid){
+            res.status(400).send('Input validation error')
+        } else {
+            comment.save()
+
+            res.status(202).send()
+        }
+    },
+
+    deleteComment: (req,res) => {
+        let commentId = req.params.commentId;
+        commentModel.deleteOne({_id: commentId},(err) => console.log(`${err}`))
+        res.sendStatus(200)
     }
 
 }

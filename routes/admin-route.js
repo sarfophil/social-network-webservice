@@ -19,10 +19,11 @@ router.get('/blacklist/posts/reviews',function (req,res) {
             res.status(200).send(result)
         })
     } catch (error) {
-        console.log(error)
          res.sendStatus(500)
     }
 })
+
+
 // accept
 router.put('/blacklist/posts/reviews/:reviewId',function(req,res){
     blacklistedPostService.removePostFromBlackListToPost(req.params.reviewId)
@@ -33,6 +34,8 @@ router.put('/blacklist/posts/reviews/:reviewId',function(req,res){
         res.status(500).send('An Error Occured')
     })
 })
+
+
 // reject
 router.delete('/blacklist/posts/reviews/:reviewId', function(req,res){
     blacklistedPostService.deleteUserPost(req.params.reviewId)

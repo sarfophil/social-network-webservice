@@ -107,11 +107,6 @@ postSchema.methods.createOrUpdatePost = async function() {
   }
 
 
-postSchema.statics.getAudienceFollowers = (async function (id) {
-  
-});
-
-
 //filtering unhealthy post
 function  validatePostContent(content) {
      return BlacklistKeywords.find().then((data) => {
@@ -140,10 +135,11 @@ async function ExceedUNhealthyPost(userId) {
             if (number >= 20) {
                 user.isActive = false;
 
-                nodemailer.subject("Account Deactivation").
-                    text("your Account has been deactivated  " + number + " unhealthy posts.")
-                    .to("ymengistu@miu.edu")
-                    .sendEmail((result) => console.log(`Email Sent`))
+                nodemailer
+                    .subject("Account Deactivation")
+                    .text("your Account has been deactivated  " + number + " unhealthy posts.")
+                    .to([user.email])
+                    .sendEmail((result) => console.log(`Email Sent: ${result}`))
                 
                 // websocket notification
                 wsutil([user.email],{reason: properties.appcodes.accountBlocked})
