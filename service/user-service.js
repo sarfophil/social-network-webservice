@@ -43,7 +43,7 @@ exports.updateProfilePic = (function (req, res, next) {
                       user.profilePicture = imageName;
                       console.log(imageName + " " + names[0])
                       user.save().then(()=>{
-                        res.send({ data: req.body, imageUpload: { eror: true, message: "User profile picture updated succesfully" } });
+                        res.send({ data: req.body, imageUpload: { eror: false, message: "User profile picture updated succesfully" } });
                       })
                     })
                   }
