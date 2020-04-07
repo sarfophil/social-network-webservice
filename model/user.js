@@ -45,7 +45,11 @@ const user = {
     },
     followers: [{ref:'user',type: mongoose.Schema.Types.ObjectId}],
     
-    profilePicture: String
+    profilePicture: String,
+    role: {
+        type: String,
+        default: 'USER_ROLE'
+    }
 }
 
 const userSchema = new mongoose.Schema(user);

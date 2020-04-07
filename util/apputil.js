@@ -5,7 +5,6 @@
  */
 const AdminModel = require('../model/admin').adminModel
 const bcrypt = require('../util/bcrypt')
-const ws = require('../config/websocket')
 
 module.exports = {
     /**
@@ -73,5 +72,17 @@ module.exports = {
             //newMap.push(arr);
         }
         return newMap;
+    },
+    findAbsPath: (path) => {
+        path = path.substring(1)
+        let pathArray = path.split('')
+        let result = '';      
+        for(let i = 0; i < pathArray.length; i++){
+            if(pathArray[i] == '/') break;
+
+            result += pathArray[i]
+        }
+
+        return result;
     }
 }

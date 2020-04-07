@@ -8,11 +8,8 @@ const BlacklistedPostModel = require('../model/blacklistedPost');
 const BlockedAccount = require('../model/blocked-account')
 const UserModel = require('../model/user').getModel
 const nodemailer = require('../util/nodemailer')
-
-
-const advertService = require('../service/advertisement-service');
-const fileStorageService = require('../service/filestorage-service');
 const blacklistedPostService = require('../service/blacklistedpost-service');
+const adminService = require('../service/admin-service')
 
 
 const bcrypt = require('../util/bcrypt')
@@ -24,7 +21,7 @@ const Utils = require('../util/appUtil')
 
 
 
-
+/** Admin Login */
 router.get('/login',function(req,res) {
     let username = req.body.username
     let password = req.body.password
@@ -43,76 +40,27 @@ router.get('/login',function(req,res) {
 })
 
 
+/** Retrieve list of posts */
 router.get('/ads',function(req,res) {
     let skip = parseInt(req.query.skip);
     let limit = parseInt(req.query.limit);
     AdvertModel.find((err,doc) => res.status(200).send(doc)).limit(limit).skip(skip)
 })
 
-router.post('/ads',function(req,res) {
-    let ad = {
-        title: req.body.title,
-        content: req.body.content,
-        link: req.body.link,
-        banner: null, // link
-        owner: req.body.owner,
-        audienceCriteria:{
-            age: JSON.parse(req.body.age_target)
-        },
-        audienceLocation: {
-            coordinates: JSON.parse(req.body.target_location)
-        }
-    }
 
-    let banners = req.files.banner;
+/**
+ * Create Ad
+ */
+router.post('/ads',adminService.createAd)
 
-    let adModel = new AdvertModel(ad)
-
-    adModel.validate()
-        .then(value => {
-            uploadImage(banners,adModel,(err,images) => {
-                if(err){
-                    res.status(500).send(err)
-                }else{
-                    adModel.banner = images
-                    adModel.save()
-                    res.status(201).send('Posted')
-                }
-            })
-        })
-        .catch(err => {
-            console.log(err.stack)
-            res.status(500).send('Input Validation Error')
-        })
-   
-})
-
-
-function uploadImage(images,ad,callback){
-    fileStorageService(images,ad,'ad',(statuses,images)=>{
-        Utils.perform(statuses,(status) => status.failed == true)
-            .then(res => {
-                callback(res.reason,images)
-            })
-            .catch(err => {
-                callback(null,images)
-            })
-   })
-}
-
-
-/** 
- * @Post
- * Post 
- * 
- * 
-*/
+/** Retrieve All Posts */
 router.get('/posts', function (req,res) {
     let requestBody = req.body
     postModel.find((err,doc) => res.status(200).send(doc))
     .limit(parseInt(requestBody.limit)).skip(parseInt(requestBody.skip))
 })
 
+/** Retrieve list posts by Post Id */
 router.get('/posts/:postId',function (req,res) {
     postModel.findById({_id: postId},(err,doc) => res.status(200).send(doc))
 })
@@ -129,6 +77,8 @@ router.get('/blacklist/posts/reviews',function (req,res) {
     BlacklistedPostModel.find((err,doc) => res.status(200).send(doc))
     .limit(parseInt(req.query.limit)).skip(parseInt(req.query.skip))
 })
+
+
 // accept
 router.put('/blacklist/posts/reviews/:reviewId',function(req,res){
     blacklistedPostService.removePostFromBlackListToPost(req.params.reviewId)
@@ -139,6 +89,8 @@ router.put('/blacklist/posts/reviews/:reviewId',function(req,res){
         res.status(500).send('An Error Occured')
     })
 })
+
+
 // reject
 router.delete('/blacklist/posts/reviews/:reviewId', function(req,res){
     blacklistedPostService.deleteUserPost(req.params.reviewId)
@@ -177,10 +129,17 @@ router.post('/blacklistwords',function(req,res) {
     res.status(201).send('blacklist created')
 })
 
+/**
+ * Retrieve Blacklist words
+ */
 router.get('/blacklistwords',function(req,res) {
     blacklistModel.find((err,doc) => res.status(200).send(doc))
 })
 
+
+/**
+ * Remove Blacklisted words
+ */
 router.delete('/blacklistwords/:blacklistId',function (req,res) {
     blacklistModel.deleteOne({_id: req.params.blacklistId.toString()},(err) => console.log(err))
     res.status(200).send('keyword removed')
@@ -189,14 +148,17 @@ router.delete('/blacklistwords/:blacklistId',function (req,res) {
 
 /**
  * @accountReview
- * 
+ * Account Review By Done
  */
 router.get('/accounts/reviews',function(req,res) {
     let limit = parseInt(req.params.limit)
     BlockedAccount.find({hasRequestedAReview: true},(err,doc) => res.status(200).send(doc)).limit(limit)
 })
 
-// accept a review
+
+/**
+ * Approve an Account
+ */
 router.put('/accounts/reviews/:reviewId', function(req,res) {
     let reviewId = req.params.reviewId;
     BlockedAccount.findById({_id: reviewId},(err,doc) => {
@@ -206,7 +168,6 @@ router.put('/accounts/reviews/:reviewId', function(req,res) {
             if(err) {
                 res.sendStatus(404)
             } else {
-
                 //update user info
                 user.isActive = true;
                 user.totalVoilation = 0
