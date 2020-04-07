@@ -81,3 +81,143 @@ router.post('/ads',function(req,res) {
         })
    
 })
+
+function uploadImage(images,ad,callback){
+    fileStorageService(images,ad,'ad',(statuses,images)=>{
+        Utils.perform(statuses,(status) => status.failed == true)
+            .then(res => {
+                callback(res.reason,images)
+            })
+            .catch(err => {
+                callback(null,images)
+            })
+   })
+}
+
+/** 
+ * @Post
+ * Post 
+ * 
+ * 
+*/
+router.get('/posts', function (req,res) {
+    let requestBody = req.body
+    postModel.find((err,doc) => res.status(200).send(doc))
+    .limit(parseInt(requestBody.limit)).skip(parseInt(requestBody.skip))
+})
+
+router.get('/posts/:postId',function (req,res) {
+    postModel.findById({_id: postId},(err,doc) => res.status(200).send(doc))
+})
+
+/**
+ * @blacklistPost
+ *  Review blacklist posts
+ * 
+ *  */
+router.get('/blacklist/posts/reviews',function (req,res) {
+    BlacklistedPostModel.find((err,doc) => res.status(200).send(doc))
+    .limit(parseInt(req.query.limit)).skip(parseInt(req.query.skip))
+})
+// accept
+router.put('/blacklist/posts/reviews/:reviewId',function(req,res){
+    blacklistedPostService.removePostFromBlackListToPost(req.params.reviewId)
+    .then(result => {
+        res.status(200).send('Post Added')
+    })
+    .catch(err => {
+        res.status(500).send('An Error Occured')
+    })
+})
+// reject
+router.delete('/blacklist/posts/reviews/:reviewId', function(req,res){
+    blacklistedPostService.deleteUserPost(req.params.reviewId)
+    .then(result => {
+        res.status(200).send('')
+    })
+    .catch(err => {
+        res.status(500).send('An Error Occured')
+    })
+})
+
+
+/**
+ * @blacklist
+ * Blacklist
+ */
+router.post('/blacklistwords',function(req,res) {
+    let keywords = req.body;
+    
+    for(word of keywords){
+        let createdWord = new blacklistModel({word: word})
+        
+        let isExist = createdWord.validateSync()
+        if(!isExist) {
+            blacklistModel.exists({word: createdWord.word})
+            .then(fullfilled => {
+                if(!fullfilled){    
+                    createdWord.save()
+                }
+            })
+            .catch(reject => {
+
+            })      
+        }
+    }
+    res.status(201).send('blacklist created')
+})
+
+router.get('/blacklistwords',function(req,res) {
+    blacklistModel.find((err,doc) => res.status(200).send(doc))
+})
+
+router.delete('/blacklistwords/:blacklistId',function (req,res) {
+    blacklistModel.deleteOne({_id: req.params.blacklistId.toString()},(err) => console.log(err))
+    res.status(200).send('keyword removed')
+})
+
+
+/**
+ * @accountReview
+ * 
+ */
+router.get('/accounts/reviews',function(req,res) {
+    let limit = parseInt(req.params.limit)
+    BlockedAccount.find({hasRequestedAReview: true},(err,doc) => res.status(200).send(doc)).limit(limit)
+})
+
+// accept a review
+router.put('/accounts/reviews/:reviewId', function(req,res) {
+    let reviewId = req.params.reviewId;
+    BlockedAccount.findById({_id: reviewId},(err,doc) => {
+        if(err) res.sendStatus(404)
+        
+        UserModel.findOne({_id: doc.account._id},(err,user) => {
+            if(err) {
+                res.sendStatus(404)
+            } else {
+
+                //update user info
+                user.isActive = true;
+                user.totalVoilation = 0
+                user.save()
+
+                // remove data from blocked-account collection
+                doc.deleteOne()
+
+                // send user an email
+                nodemailer.to([user.email])
+                        .subject("Account Activated")
+                        .text(`Dear ${user.username}, Your Account has been activated successfully`)
+                        .sendEmail(onSucess => console.log(`Email Sent ! ${onSucess}`))
+                
+                res.sendStatus(200)
+            }
+
+        })
+
+    })
+})
+
+
+module.exports = router;
