@@ -4,6 +4,7 @@ const searchService = require('../service/search-service')
 const fservice = require('../service/filestorage-service');
 const wsutil = require('../util/ws-events')
 const properties = require('../config/properties')
+const Utils = require('../util/apputil')
 
 
 
@@ -184,6 +185,53 @@ const postService = {
             }).catch((err) => { throw new Error(err) });
 
         })
+    },
+
+    like: (req,res) => {
+        let postId = req.params.postId;
+        let userId = req.params.userId;
+        
+        Post.findOne({_id: postId},(err,post) => {
+            if (err) {
+                res.sendStatus(404)
+            } else {
+                let isExist = Utils.find(post.likes,(like) => like.toString() === userId.toString())
+                if(!isExist)
+                    post.likes.push(userId)
+
+                // save to db
+                post.save() 
+
+                res.sendStatus(200)
+            }
+        })
+       
+    },
+
+    unlike: (req,res) => {
+        let postId = req.params.postId;
+        let userId = req.params.userId;
+
+        
+        PostModel.findOne({_id: postId},(err,post) => {
+            if(err){
+                res.sendStatus(404)
+            } else {     
+                let likes = Utils.remove(post.likes,(like) => {
+                    return like.toString() === userId
+                })
+ 
+                // assign new likes to the object
+                post.likes = likes
+
+                post.save()
+
+                res.sendStatus(200)
+            }
+        })
+
+
+        
     }
 
 }
