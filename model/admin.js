@@ -32,6 +32,10 @@ const admin = {
     'createdDate':{
         type: Date,
         default: Date.now
+    },
+    role: {
+        type: String,
+        default: 'USER_ADMIN'
     }
 }
 

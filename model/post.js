@@ -60,9 +60,6 @@ const postSchema = new Schema({
     postuname: String   // Field used for Full text search
 });
 
-postSchema.methods.removeFromCart =async function() {
-     return await 1;
-}
 
 
 // Create Index
@@ -76,6 +73,9 @@ postSchema.virtual('totalLikes').get(() => this.likes.length)
 //create Post
 postSchema.methods.createOrUpdatePost = async function() {
    return User.findById(this.user).then((user)=>{
+
+        this.postuname = user.username
+
         if(user.isActive == false){
         return {"isActive":false};
         
