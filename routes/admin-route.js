@@ -43,3 +43,41 @@ router.get('/ads',function(req,res) {
     let limit = parseInt(req.query.limit);
     AdvertModel.find((err,doc) => res.status(200).send(doc)).limit(limit).skip(skip)
 })
+
+router.post('/ads',function(req,res) {
+    let ad = {
+        title: req.body.title,
+        content: req.body.content,
+        link: req.body.link,
+        banner: null, // link
+        owner: req.body.owner,
+        audienceCriteria:{
+            age: JSON.parse(req.body.age_target)
+        },
+        audienceLocation: {
+            coordinates: JSON.parse(req.body.target_location)
+        }
+    }
+
+    let banners = req.files.banner;
+
+    let adModel = new AdvertModel(ad)
+
+    adModel.validate()
+        .then(value => {
+            uploadImage(banners,adModel,(err,images) => {
+                if(err){
+                    res.status(500).send(err)
+                }else{
+                    adModel.banner = images
+                    adModel.save()
+                    res.status(201).send('Posted')
+                }
+            })
+        })
+        .catch(err => {
+            console.log(err.stack)
+            res.status(500).send('Input Validation Error')
+        })
+   
+})
