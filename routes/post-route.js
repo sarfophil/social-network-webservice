@@ -21,6 +21,10 @@ router.delete('/:postId',postService.delete)
 router.put('/:postId',postService.update)
 // nearby post
 router.get('/nearby',postService.getNearbyPost)
+// like post
+router.put('/:postId/user/:userId/likes',postService.like)
+// unlike post
+router.delete('/:postId/user/:userId/likes',postService.unlike)
 
 
 module.exports = router;

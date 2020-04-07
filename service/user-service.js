@@ -35,24 +35,23 @@ exports.login = (function(req,res) {
 
 //update profile 
 exports.updateProfilePic = (function (req, res, next) {
-  console.log(req.files)
-  let postImages = req.files.images instanceof Array ? req.files.images : [req.files.images]
+  let postImages = req.files.picture instanceof Array ? req.files.picture : [req.files.picture]
+  
+      try {
+          let names = fservice.prepareFiles(postImages).renameAs(req.params.userId).upload().getNames();
+          if(names[0]!=null){
+            User.findById(req.params.userId).then((user)=>{
+              user.profilePicture = names[0];
 
-  const imageName = new String(new Date().getTime()).trim();
-                try {
-                    let names = fservice.prepareFiles(postImages).renameAs(imageName).upload().getNames();
-                    if(names[0]!=null){
-                    User.findById(req.params.userId).then((user)=>{
-                      user.profilePicture = imageName;
-                      console.log(imageName + " " + names[0])
-                      user.save().then(()=>{
-                        res.send({ data: req.body, imageUpload: { eror: false, message: "User profile picture updated succesfully" } });
-                      })
-                    })
-                  }
-                } catch (e) {
-                    throw new Error(e);
-                }
+              user.save().then(()=>{
+                res.sendStatus(200)
+              })
+
+            })
+        }
+      } catch (e) {
+          res.sendStatus(500)
+      }
 })
 
 

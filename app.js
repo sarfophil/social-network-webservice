@@ -37,7 +37,7 @@ app.use(fileUpload({
 
 
 app.use('/', indexRouter);
-app.use('/users', userRouter);
+app.use('/user', userRouter);
 app.use('/posts',postRouter);
 app.use('/admin',adminRouter)
 
@@ -56,7 +56,6 @@ app.use(function(err, req, res, next) {
   res.status(err.status || 500);
   res.render('error');
 
-  console.log(err.stack)
 });
 
 module.exports = app;
