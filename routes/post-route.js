@@ -3,8 +3,6 @@ var router = express.Router();
 const postService = require('../service/post-service')
 
 
-
-
 // search post
 router.get('/search',postService.search)
 //Create post

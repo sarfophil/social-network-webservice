@@ -37,7 +37,7 @@ app.use(fileUpload({
 
 
 app.use('/', indexRouter);
-app.use('/user', userRouter);
+app.use('/users', userRouter);
 app.use('/posts',postRouter);
 app.use('/admin',adminRouter)
 

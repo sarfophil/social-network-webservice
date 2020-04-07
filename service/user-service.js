@@ -35,30 +35,24 @@ exports.login = (function(req,res) {
 
 //update profile 
 exports.updateProfilePic = (function (req, res, next) {
-  const userId = req.params.userId;
-  const image = req.files.image
-  const mimetype = req.files.mimetype;
-  const imagePath = path.join('/images/posts/' + new Date().getTime() + '.jpg');
- 
-  if (image != null && (mimetype != 'image/jpeg' || mimetype != 'image/jpg' || mimetype != 'image/png')) {
-    User.findOne(userId).then((user) => {
-      if (user != null) {
-        const oldPrfilePath = user.profilePicture
+  console.log(req.files)
+  let postImages = req.files.images instanceof Array ? req.files.images : [req.files.images]
 
-        FileSystem.createWriteStream(path.join('public' + imagePath), image).then(() => {
-          user.profilePicture = imagePath;
-          FileSystem.unlinkSync(path.join('public/' + oldPrfilePath));
-          user.save().then(() => {
-            res.send({ error: false, message: "Profile Updated successfully!" })
-          })
-        }).catch((err) => {
-          throw new Error(err);
-        })
-      }else{
-        res.sendStatus(403)
-      }
-    })
-  }
+  const imageName = new String(new Date().getTime()).trim();
+                try {
+                    let names = fservice.prepareFiles(postImages).renameAs(imageName).upload().getNames();
+                    if(names[0]!=null){
+                    User.findById(req.params.userId).then((user)=>{
+                      user.profilePicture = imageName;
+                      console.log(imageName + " " + names[0])
+                      user.save().then(()=>{
+                        res.send({ data: req.body, imageUpload: { eror: false, message: "User profile picture updated succesfully" } });
+                      })
+                    })
+                  }
+                } catch (e) {
+                    throw new Error(e);
+                }
 })
 
 
@@ -109,6 +103,7 @@ exports.followUser = async function (req, res, next) {
   }
 
 }
+
 
 // Account creation
 exports.signUp = function(req,res) {
@@ -207,6 +202,7 @@ exports.getUserFollower = async function (req, res, next) {
     results.push(foll);
   }
 
+
   let flatResult = Utils.flatMap(results,functor=>{
     return functor[0];
   });
@@ -263,6 +259,7 @@ exports.unfollowUser =  function (req, res, next) {
 
 }
 
+
 exports.login = (function (req, res) {
     const username = req.body.username;
     const password = req.body.password;
@@ -294,7 +291,7 @@ exports.login = (function (req, res) {
 
     
   result.userExist = await User.findOne({ email: email }).then((data) => {
-      console.log("message...........................",data)
+
       if (data != null) {
         result.emailExist = true;
         err = true;
@@ -318,9 +315,14 @@ exports.login = (function (req, res) {
       err = true;
     }
 
+
+    result.err = err;
     
   return result;  
   }
+
+
+  
 
 
 
