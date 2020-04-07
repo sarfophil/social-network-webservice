@@ -9,7 +9,7 @@ var security = require('./config/securityconfig')
 
 
 var indexRouter = require('./routes/index');
-var userRouter = require('./routes/users-route');
+// var userRouter = require('./routes/users-route');
 var postRouter = require('./routes/post-route');
 var adminRouter = require('./routes/admin-route');
 
@@ -37,7 +37,7 @@ app.use(fileUpload({
 
 
 app.use('/', indexRouter);
-app.use('/user', userRouter);
+// app.use('/users', userRouter);
 app.use('/posts',postRouter);
 app.use('/admin',adminRouter)
 

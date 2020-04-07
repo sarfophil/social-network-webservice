@@ -13,7 +13,7 @@ const jwt = require('../util/jwt')
 router.get('/search',postService.search)
 
 //Create post
-router.post('/create',postService.create);
+router.post('/',postService.create);
 //Get post by Id
 router.get('/:postId',postService.getById);
 // Get Audience Followers
