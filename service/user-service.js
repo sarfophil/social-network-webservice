@@ -249,25 +249,7 @@ exports.login = (function (req, res) {
   }
 
 
-  async function saveImage(req, imagePath) {
-
-    console.log(req.files);
-    if (req.files != null && req.files.avatar != null) {
-      const avatar = req.files.avatar;
-      imageUplader.upload(imagePath, avatar.mimetype, avatar.data, (cb) => {
-        console.log(avatar);
-        if (cb == -1) {
-          return -1;
-        }
-        else if (cb == 1) {
-          return 1;
-        }
-
-      })
-    }
-
-    return 0;
-  }
+  
 
 
 
