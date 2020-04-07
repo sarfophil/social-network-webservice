@@ -6,8 +6,9 @@ const blacklistPostModel = require('../model/blacklistedPost')
 const blacklistKeywordModel = require('../model/blacklistedkeyword');
 const Post = require('../model/post').getModel
 const User = require('../model/user').getModel
-
 const Utils = require('../util/apputil')
+const wsutil = require('../util/ws-events')
+const properties = require('../config/properties')
 
 const blacklistedPostServiceImpl = {
     /**
@@ -86,6 +87,9 @@ const blacklistedPostServiceImpl = {
 
         //
         user.save()
+
+        // send notification
+        wsutil([user.email],{reason: properties.appcodes.postVerified})
 
         // updated
         return Promise.resolve(user)

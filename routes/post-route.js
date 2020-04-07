@@ -7,7 +7,6 @@ const postService = require('../service/post-service')
 
 // search post
 router.get('/search',postService.search)
-
 //Create post
 router.post('/',postService.create);
 //Get post by Id
@@ -22,6 +21,8 @@ router.get('/',postService.getAll);
 router.delete('/:postId',postService.delete)
 //updatePost
 router.put('/:postId',postService.update)
+// nearby post
+router.get('/nearby',postService.getNearbyPost)
 
 
 module.exports = router;

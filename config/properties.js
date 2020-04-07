@@ -16,9 +16,14 @@ const config = {
         exp: Math.floor(Date.now() / 1000) + (60 * 60),
         alg: 'HS256'
     },
+    // Application codes which will be understood by the frontend
     appcodes:{
         follow: 111,
-        unfollow: 112
+        unfollow: 112,
+        newPost: 113,
+        unhealthyPost: 114,
+        accountBlocked: 115,
+        postVerified: 116
     }
 };
 

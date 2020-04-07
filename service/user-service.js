@@ -1,13 +1,15 @@
 
 const ObjectId = require('mongodb').ObjectId
 const User = require('../model/user').getModel;
-const Utils = require('../util/apputil');
+
 const bcrypt = require('../util/bcrypt')
 const jwt = require('../util/jwt')
 const path = require('path');
 const notify = require('../util/ws-events')
 const properties = require('../config/properties')
 
+const fservice = require('../service/filestorage-service');
+const uploadPath = require('../public/upload-path').getPath;
 
 exports.login = (function(req,res) {
     const username = req.body.username;
@@ -52,40 +54,12 @@ exports.updateProfilePic = (function (req, res, next) {
         }).catch((err) => {
           throw new Error(err);
         })
+      }else{
+        res.sendStatus(403)
       }
-    }).catch((err) => {
-      throw new Error(err);
     })
   }
-  else res.send({ error: true, message: 'invalid file' });
-
 })
-
-
-// retrieve all follwers of a user
-exports.getUserFollower = async function (req, res, next) {
-  const user = await User.findOne({ _id: req.params.userId });
-  let results = [];
-  for (follower of user.followers) {
-    foll = await User.aggregate([{ $match: { _id: follower } }]).project({
-      username: 1,
-      email: 1,
-      age: 1,
-      profilePicture: 1
-    });
-
-    results.push(foll);
-  }
-
-  let flatResult = Utils.flatMap(results,functor=>{
-    return functor[0];
-  });
-  Promise.resolve(flatResult)
-    .then(f => {
-      res.status(200).send(f);
-    })
-    .catch(err => new Error(err));
-}
 
 
 // Post to Follow  user 
@@ -168,6 +142,80 @@ exports.signUp = function(req,res) {
     })
 }
 
+// Post to Follow  user 
+exports.followUser = async function (req, res, next) {
+  let userId = req.params.userId;
+  let followId = req.params.followerId;
+  var flag = false;
+
+  let user = await User.findOne({ _id: userId });
+  if (!user) {
+    res.status(404).send('user not found')
+  }
+
+  for (let f of user.followers) {
+    if (f == followId) {
+      flag = true;
+      break;
+    }
+  }
+  if (flag == true) {
+    res.status(200).send('following is not success');
+  }
+  else {
+    if (userId === followId) {
+      res.status(403).send('Operation denied')
+    }
+
+    User.findOne({ _id: followId }, (err, follower) => {
+      if (err) {
+        res.status(404).send('Unable to follow');
+      }
+
+      User.findOne({ _id: userId }, (err, user) => {
+        if (err) throw err;
+        user.followers.push(new ObjectId(followId));
+        user.save();
+
+        //send user a notify about the follow
+        notify([user.email],{follower: follower,reason: properties.appcodes.follow})
+
+      });
+    });
+    
+    
+
+    res.status(200).send('following  successfully');
+  }
+
+}
+
+
+
+// retrieve all follwers of a user
+exports.getUserFollower = async function (req, res, next) {
+  const user = await User.findOne({ _id: req.params.userId });
+  let results = [];
+  for (follower of user.followers) {
+    foll = await User.aggregate([{ $match: { _id: follower } }]).project({
+      username: 1,
+      email: 1,
+      age: 1,
+      profilePicture: 1
+    });
+
+    results.push(foll);
+  }
+
+  let flatResult = Utils.flatMap(results,functor=>{
+    return functor[0];
+  });
+  Promise.resolve(flatResult)
+    .then(f => {
+      res.status(200).send(f);
+    })
+    .catch(err => new Error(err));
+}
 
 // Post to Unfollow  user 
 exports.unfollowUser =  function (req, res, next) {
@@ -215,7 +263,6 @@ exports.unfollowUser =  function (req, res, next) {
 
 }
 
-
 exports.login = (function (req, res) {
     const username = req.body.username;
     const password = req.body.password;
@@ -238,38 +285,41 @@ exports.login = (function (req, res) {
     })
   })
 
-async function validateUser(user) {
+ async function validateUser(user) {
     const email = user.email;
     const password = user.password;
     const username = user.username;
-    const result = {};
+    let result = {};
     let err = false;
 
+    
+  result.userExist = await User.findOne({ email: email }).then((data) => {
+      console.log("message...........................",data)
+      if (data != null) {
+        result.emailExist = true;
+        err = true;
+      }
+
+    })
+
+   result.usrNameExist =  await User.findOne({ username: username }).then((data) => {
+      if (data != null) {
+        result.usernameTaken = true;
+        err = true;
+      }
+    })
     if (/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(email) == false) {
       result.email = { error: true, message: "you have entered invalid Email" }
       err = true;
     }
-    User.findOne({ email: email }).then((data) => {
-      if (data != null) {
-        result.email.exist = true;
-        err = true;
-      }
-    }).catch(() => { });
-    User.findOne({ username: username }).then((data) => {
-      if (data != null) {
-        result.username = { message: "username taken" };
-        err = true;
-      }
-    }).catch(() => { });
 
     if (password.length < 8) {
       result.password = { error: true, message: "password must be 8 or above" }
       err = true;
     }
 
-    result.err = err;
-    console.log("validate User");
-    return await result;
+    
+  return result;  
   }
 
 
@@ -289,8 +339,6 @@ exports.deleteAccount = (function(req,res,next){
     });
   });
 })
-
-
 
 
 

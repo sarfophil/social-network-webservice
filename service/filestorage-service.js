@@ -29,7 +29,7 @@ let processImages = []
  */
 function rename(pattern){
     let count = 0;
-    images.forEach(image => {
+    processImages.forEach(image => {
         const getExtension = image.name.split('.')
         image.name = pattern.concat(count++).concat('.').concat(getExtension[1])
     })
@@ -46,6 +46,7 @@ function rename(pattern){
  */
 function upload(){
     let result = []
+    
     processImages.forEach(image => {
         // move files to server directory
         image.mv(uploadDirectory.getPath().concat(image.name),(err) => {  
@@ -56,6 +57,7 @@ function upload(){
 
         // Add image names
         result.push(image.name)
+
     })
     return {
         getNames: () => result
@@ -76,7 +78,9 @@ const uploadModule = {
      * @param {any} images 
      */
     prepareFiles: function(images) {
+        processImages = [];
         if(images instanceof Array){
+            console.log(`Images: ${images.length} image(s)`)
             images.forEach(image => {
                 if(!validateImageExtension(image.mimetype)) throw new Error('Invalid File Extension')
                 else{

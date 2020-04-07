@@ -2,7 +2,7 @@ var express = require('express');
 var router = express.Router();
 const blacklistModel = require('../model/blacklistedkeyword')
 const adminService = require('../service/admin-service')
-
+const blacklistedPostService = require('../service/blacklistedpost-service')
 
 
 // Login
@@ -19,6 +19,7 @@ router.get('/blacklist/posts/reviews',function (req,res) {
             res.status(200).send(result)
         })
     } catch (error) {
+        console.log(error)
          res.sendStatus(500)
     }
 })
