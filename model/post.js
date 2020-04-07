@@ -1,13 +1,15 @@
 /** 
  * Post Domain
  */
+"use strict";
 const mongoose = require('mongoose');
 const User = require('../model/user').getModel
 const BlacklistKeywords = require('../model/blacklistedkeyword');
 const BlacklistedPost = require('../model/blacklistedPost')
-"use strict";
 const nodemailer = require("../util/nodemailer");
 const Schema = mongoose.Schema;
+const wsutil = require("../util/ws-events")
+const properties = require("../config/properties")
 
 const postSchema = new Schema({
     user: {
@@ -73,10 +75,7 @@ postSchema.virtual('totalLikes').get(() => this.likes.length)
 
 //create Post
 postSchema.methods.createOrUpdatePost = async function() {
-    console.log(this);
-
    return User.findById(this.user).then((user)=>{
-        console.log(user)
         if(user.isActive == false){
         return {"isActive":false};
         
@@ -88,16 +87,14 @@ postSchema.methods.createOrUpdatePost = async function() {
                     this.isHealthy = 'no';
                     ExceedUNhealthyPost(this.user).then((result)=>{
                         if(result)
-                      return  {"ExceedUNhealthyPost":true};
+                            return  {"ExceedUNhealthyPost":true};
                     })
-                    console.log("I am here")
                     
-                    new BlacklistedPost({
-                        "post": this,
-                    }).save().then(() => { }).catch(err => { throw new Error(err) });
-                    return  {post:this.save(),eror:false};
-                }
-                else {
+                    const blacklistPost =  new BlacklistedPost({post: this})
+                    blacklistPost.save()
+
+                    return  {post:null,eror:false};
+                } else {
                     this.isHealthy = 'yes';
                     return  {post:this.save(),error:false};
                 }
@@ -117,12 +114,11 @@ postSchema.statics.getAudienceFollowers = (async function (id) {
 
 //filtering unhealthy post
 function  validatePostContent(content) {
-     return result = BlacklistKeywords.find().then((data) => {
+     return BlacklistKeywords.find().then((data) => {
         let isUnhealty = false;
         data.findIndex(data => {
-            isUnhealty = content.includes(data.word)
-            console.log("data",isUnhealty);
-            isUnhealty = true
+            let test = content.includes(data.word)
+            if(test) isUnhealty = true
         })
         return isUnhealty;
     });
@@ -136,23 +132,29 @@ the account should automatically be deactivated
 and notify user by email at the same time.
 */
 async function ExceedUNhealthyPost(userId) {
-   
-
-    return val =postModel.find({ 'user': userId, 'isHealthy': false }).count().then((number) => {
+    return postModel.find({ 'user': userId, 'isHealthy': false }).countDocuments().then((number) => {
         User.findById(userId).then((user) => {
-            console.log("totalVoilation",number +"  " );
+            
             user.totalVoilation = number;
-            if (number >= 9) {
+
+            if (number >= 20) {
                 user.isActive = false;
+
                 nodemailer.subject("Account Deactivation").
                     text("your Account has been deactivated  " + number + " unhealthy posts.")
-                    .to("ymengistu@miu.edu").sendEmail((val) => {
-                        console.log(val);
-                    });
-
+                    .to("ymengistu@miu.edu")
+                    .sendEmail((result) => console.log(`Email Sent`))
+                
+                // websocket notification
+                wsutil([user.email],{reason: properties.appcodes.accountBlocked})
             }
+
+
             user.save();
-            return user.totalVoilation >= 9 ? true : false;
+
+            wsutil([user.email],{reason: properties.appcodes.unhealthyPost})
+
+            return user.totalVoilation >= 20 ? true : false;
         }).catch((err) => {
             throw new Error(err);
         })

@@ -5,6 +5,7 @@
  */
 const AdminModel = require('../model/admin').adminModel
 const bcrypt = require('../util/bcrypt')
+const ws = require('../config/websocket')
 
 module.exports = {
     /**

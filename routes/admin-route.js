@@ -2,6 +2,8 @@ var express = require('express');
 var router = express.Router();
 const blacklistModel = require('../model/blacklistedkeyword')
 const adminService = require('../service/admin-service')
+const blacklistedPostService = require('../service/blacklistedpost-service')
+
 
 // Login
 router.post('/login', adminService.login);
@@ -12,8 +14,14 @@ router.post('/login', adminService.login);
  * 
  *  */
 router.get('/blacklist/posts/reviews',function (req,res) {
-    BlacklistedPostModel.find((err,doc) => res.status(200).send(doc))
-    .limit(parseInt(req.query.limit)).skip(parseInt(req.query.skip))
+    try {      
+        blacklistedPostService.loadblacklistPost(parseInt(req.query.limit),parseInt(req.query.skip),(result) =>{
+            res.status(200).send(result)
+        })
+    } catch (error) {
+        console.log(error)
+         res.sendStatus(500)
+    }
 })
 // accept
 router.put('/blacklist/posts/reviews/:reviewId',function(req,res){
