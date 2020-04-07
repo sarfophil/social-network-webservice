@@ -15,6 +15,10 @@ const config = {
         secret: '1qaz@WSX',
         exp: Math.floor(Date.now() / 1000) + (60 * 60),
         alg: 'HS256'
+    },
+    appcodes:{
+        follow: 111,
+        unfollow: 112
     }
 };
 

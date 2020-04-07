@@ -1,11 +1,12 @@
 
 const ObjectId = require('mongodb').ObjectId
 const User = require('../model/user').getModel;
-
+const Utils = require('../util/apputil');
 const bcrypt = require('../util/bcrypt')
 const jwt = require('../util/jwt')
 const path = require('path');
-const imageUplader = require('../util/imageUploader');
+const notify = require('../util/ws-events')
+const properties = require('../config/properties')
 
 
 exports.login = (function(req,res) {
@@ -60,6 +61,33 @@ exports.updateProfilePic = (function (req, res, next) {
 
 })
 
+
+// retrieve all follwers of a user
+exports.getUserFollower = async function (req, res, next) {
+  const user = await User.findOne({ _id: req.params.userId });
+  let results = [];
+  for (follower of user.followers) {
+    foll = await User.aggregate([{ $match: { _id: follower } }]).project({
+      username: 1,
+      email: 1,
+      age: 1,
+      profilePicture: 1
+    });
+
+    results.push(foll);
+  }
+
+  let flatResult = Utils.flatMap(results,functor=>{
+    return functor[0];
+  });
+  Promise.resolve(flatResult)
+    .then(f => {
+      res.status(200).send(f);
+    })
+    .catch(err => new Error(err));
+}
+
+
 // Post to Follow  user 
 exports.followUser = async function (req, res, next) {
   let userId = req.params.userId;
@@ -68,7 +96,7 @@ exports.followUser = async function (req, res, next) {
 
   let user = await User.findOne({ _id: userId });
   if (!user) {
-    return Promise.reject('User not found');
+    res.status(404).send('user not found')
   }
 
   for (let f of user.followers) {
@@ -82,7 +110,7 @@ exports.followUser = async function (req, res, next) {
   }
   else {
     if (userId === followId) {
-      return Promise.reject('Operation denied');
+      res.status(403).send('Operation denied')
     }
 
     User.findOne({ _id: followId }, (err, follower) => {
@@ -94,8 +122,14 @@ exports.followUser = async function (req, res, next) {
         if (err) throw err;
         user.followers.push(new ObjectId(followId));
         user.save();
+
+        //send user a notify about the follow
+        notify([user.email],{follower: follower,reason: properties.appcodes.follow})
+
       });
     });
+    
+    
 
     res.status(200).send('following  successfully');
   }
@@ -136,45 +170,52 @@ exports.signUp = function(req,res) {
 
 
 // Post to Unfollow  user 
-exports.unfollowUser = async function (req, res, next) {
+exports.unfollowUser =  function (req, res, next) {
   let userId = req.params.userId;
   let followId = req.params.followerId;
   var flag = true;
 
-  let user = await User.findOne({ _id: userId });
-  if (!user) {
-    return Promise.reject('User not found');
-  }
-  for (let f of user.followers) {
-    if (f == followId) {
-      flag = false;
-      break;
-    }
-  }
-  if (flag == true) {
-    res.status(200).send('unfollowing is not success');
-  }
-  else {
-    if (userId === followId) {
-      return Promise.reject('Operation denied');
-    }
-
-    User.findOne({ _id: followId }, (err, follower) => {
-      if (err) {
-        res.status(404).send('Unable to follow');
+  User.findOne({ _id: userId },(err,user) => {
+      if (!user) {
+        res.status(404).send('User not found')
       }
+      for (let f of user.followers) {
+        if (f == followId) {
+          flag = false;
+          break;
+        }
+      }
+      if (flag == true) {
+        res.status(200).send('unfollowing is not success');
+      }
+      else {
+        if (userId === followId) {
+          return Promise.reject('Operation denied');
+        }
 
-      User.findOne({ _id: userId }, (err, user) => {
-        if (err) throw err;
-        user.followers.remove(followId);
-        user.save();
-      });
-    });
+        User.findOne({ _id: followId }, (err, follower) => {
+          if (err) {
+            res.status(404).send('Unable to follow');
+          }
 
-    res.status(200).send('unfollowing  successfully');
-  }
+          User.findOne({ _id: userId }, (err, user) => {
+            if (err) throw err;
+            user.followers.remove(followId);
+            user.save();
+          });
+        });
+
+        //send user a notify about the follow
+        notify([user.email],{reason: properties.appcodes.unfollow})
+
+        res.status(200).send('unfollowing  successfully');
+      }
+  });
+
 
 }
+
+
 exports.login = (function (req, res) {
     const username = req.body.username;
     const password = req.body.password;
@@ -197,7 +238,7 @@ exports.login = (function (req, res) {
     })
   })
 
-  async function validateUser(user) {
+async function validateUser(user) {
     const email = user.email;
     const password = user.password;
     const username = user.username;
@@ -232,42 +273,24 @@ exports.login = (function (req, res) {
   }
 
 
-  async function saveImage(req, imagePath) {
-
-    console.log(req.files);
-    if (req.files != null && req.files.avatar != null) {
-      const avatar = req.files.avatar;
-      imageUplader.upload(imagePath, avatar.mimetype, avatar.data, (cb) => {
-        console.log(avatar);
-        if (cb == -1) {
-          return -1;
-        }
-        else if (cb == 1) {
-          return 1;
-        }
-
-      })
-    }
-
-    return 0;
-  }
-
-
 
 // delete Account
-exports.deleteAccount = (req, res, next) => {
+exports.deleteAccount = (function(req,res,next){
   user.remove({ _id: req.params.userId })
-    .exec()
-    .then(result => {
-      res.status(200).json({
-        message: "User deleted"
-      });
-    })
-    .catch(err => {
-      console.log(err);
-     
-      res.status(500).json({
-        error: err
-      });
+  .exec()
+  .then(result => {
+    res.status(200).json({
+      message: "User deleted"
     });
-}
+  })
+  .catch(err => {
+    res.status(500).json({
+      error: err
+    });
+  });
+})
+
+
+
+
+

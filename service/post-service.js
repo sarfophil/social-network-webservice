@@ -8,53 +8,50 @@ const fservice = require('../service/filestorage-service');
 
 const postService = {
     create: (function (req, res, next) {
+        const imageName = new String(new Date().getTime());
         let post = new Post({
-            "user": req.body.user,
+            "imageLink": imageName,
+            "user": mongoose.Types.ObjectId('5e8b0d354c155921222341e6'),
             "content": req.body.content,
-            "audienceCriteria": JSON.parse(req.body.ageGroupTarget),
-        //  "audienceLocation": JSON.parse(new String(req.body.audienceLocation).trim()),
-            "audienceFollowers": JSON.parse(req.body.targetFollowers),
-            "notifyFollowers": req.body.notifyFollowers
+            "audienceCriteria": JSON.parse(req.body.audienceCriteria),
+            "audienceLocation": JSON.parse(new String(req.body.audienceLocation).trim()),
+            "audienceFollowers": JSON.parse(req.body.audienceFollowers),
+            "notifyFollowers": req.body.notifyFollowers,
+            "likes": null
         });
-       
+
+
         post.createOrUpdatePost().then((data) => {
-           console.log(data)
+
+            console.log("createOrUpdatePost", data);
+
             if (data.isActive === false) {
                 res.status(403); res.send({ error: true, message: "your account has been deactivated" });
             }
             else if (data.ExceedUNhealthyPost === true) {
-                res.send({ error: true, message: "you have exceded number of unhealthy post your; account has been deactivated; you will rescive email shortly " });
+                res.send({ error: true, message: "you have exceded number of unhelthy post your; account has been deactivated; you will rescive email shortly " });
             }
 
             else if (req.files != null) {
                 let postImages = req.files.images instanceof Array ? req.files.images : [req.files.images]
 
                 try {
-                    let names = fservice.prepareFiles(postImages).renameAs(post._id.toString()).upload().getNames();
-                    post.imageLink = names;
-                    res.status(201).send("post created successfully");
+                    let names = fservice.prepareFiles(postImages).renameAs(new String(imageName)).upload().getNames();
+                    res.send({ data: req.body, imageUpload: { eror: true, message: "post created successfully" } });
 
                 } catch (e) {
-                    // Images failed to upload.
-                    // rollback
-                    post.deleteOne()
-                    
-                    res.status(500).send(e)
-
+                    throw new Error(err);
                 }
 
             }
             else {
                 post.imageLink = null;
                 data.post.then(() => { post.save(); })
-                res.status(201).send("post created successfully")
+                res.send({ eror: false, message: "i" });
             }
         }).catch((err) => {
-            console.log(`Error Occured : ${err.stack}`)
-            res.status(500).send('An Error Occurred')
+            throw new Error(err);
         })
-      
-
     }),
     search: (req, res) => {
         let username = req.query.query;
