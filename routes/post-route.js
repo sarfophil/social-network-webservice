@@ -2,16 +2,11 @@ var express = require('express');
 var router = express.Router();
 const postService = require('../service/post-service')
 
-const searchService = require('../service/search-service')
-
-const bcrypt = require('../util/bcrypt')
-const jwt = require('../util/jwt')
 
 // search post
 router.get('/search',postService.search)
-
 //Create post
-router.post('/create',postService.create);
+router.post('/',postService.create);
 //Get post by Id
 router.get('/:postId',postService.getById);
 // Get Audience Followers
@@ -24,4 +19,8 @@ router.get('/',postService.getAll);
 router.delete('/:postId',postService.delete)
 //updatePost
 router.put('/:postId',postService.update)
+// nearby post
+router.get('/nearby',postService.getNearbyPost)
+
+
 module.exports = router;
