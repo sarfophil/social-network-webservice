@@ -1,3 +1,9 @@
+
+/**
+ * Advertisement Service is responsible for providing adversitement services
+ * All interactions to the database are transactional
+ */
+
 const AdvertisementDomain = require('../model/advertisement')
 const AdvertisementModel = AdvertisementDomain.advertisementModel;
 const userDomain = require('../model/user')

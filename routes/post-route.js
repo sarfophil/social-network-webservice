@@ -1,21 +1,30 @@
+var express = require('express');
+var router = express.Router();
+const postService = require('../service/post-service')
 
 
-module.exports = {
+// search post
+router.get('/search',postService.search)
+//Create post
+router.post('/',postService.create);
+//Get post by Id
+router.get('/:postId',postService.getById);
+// Get Audience Followers
+router.get('/:postId/audienceFollowers',postService.getAudienceFollowers);
+// Get Users who liked the post
+router.get('/:postId/likes',postService.getlikes);
+// Get All posts
+router.get('/',postService.getAll);
+//deletePost
+router.delete('/:postId',postService.delete)
+//updatePost
+router.put('/:postId',postService.update)
+// nearby post
+router.get('/nearby',postService.getNearbyPost)
+// like post
+router.put('/:postId/user/:userId/likes',postService.like)
+// unlike post
+router.delete('/:postId/user/:userId/likes',postService.unlike)
 
- postAdvertisement: (req, res,err) => {
-      if(err){
-        return res.status(500).send(err);
-}
-    res.status(201).json({ad:req.body});
-    res.end();
-}
-  search: (req,res) => {
-    let username = req.query.query;
-    let limit = parseInt(req.query.limit)
-    console.log(`${username} - ${limit}`)
-    searchService.search(username,limit,(err,doc) => {
-        res.status(200).send(doc)
-    })
-   }
-  
-};
+
+module.exports = router;

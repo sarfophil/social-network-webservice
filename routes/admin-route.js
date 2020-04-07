@@ -9,6 +9,7 @@ const BlockedAccount = require('../model/blocked-account')
 const UserModel = require('../model/user').getModel
 const nodemailer = require('../util/nodemailer')
 
+
 const advertService = require('../service/advertisement-service');
 const fileStorageService = require('../service/filestorage-service');
 const blacklistedPostService = require('../service/blacklistedpost-service');
@@ -20,6 +21,9 @@ const jwt = require('../util/jwt')
 
 // util
 const Utils = require('../util/appUtil') 
+
+
+
 
 router.get('/login',function(req,res) {
     let username = req.body.username
@@ -37,6 +41,7 @@ router.get('/login',function(req,res) {
         }
       })
 })
+
 
 router.get('/ads',function(req,res) {
     let skip = parseInt(req.query.skip);
@@ -82,6 +87,7 @@ router.post('/ads',function(req,res) {
    
 })
 
+
 function uploadImage(images,ad,callback){
     fileStorageService(images,ad,'ad',(statuses,images)=>{
         Utils.perform(statuses,(status) => status.failed == true)
@@ -93,6 +99,7 @@ function uploadImage(images,ad,callback){
             })
    })
 }
+
 
 /** 
  * @Post
@@ -109,6 +116,9 @@ router.get('/posts', function (req,res) {
 router.get('/posts/:postId',function (req,res) {
     postModel.findById({_id: postId},(err,doc) => res.status(200).send(doc))
 })
+
+
+
 
 /**
  * @blacklistPost
