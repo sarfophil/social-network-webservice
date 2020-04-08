@@ -10,7 +10,7 @@ const UserModel = require('../model/user').getModel
 const nodemailer = require('../util/nodemailer')
 const blacklistedPostService = require('../service/blacklistedpost-service');
 const adminService = require('../service/admin-service')
-
+const AdminModel = require('../model/admin').adminModel
 
 const bcrypt = require('../util/bcrypt')
 const jwt = require('../util/jwt')
