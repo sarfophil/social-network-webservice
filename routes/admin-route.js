@@ -16,13 +16,11 @@ const bcrypt = require('../util/bcrypt')
 const jwt = require('../util/jwt')
 
 
-// util
-const Utils = require('../util/appUtil') 
 
 
 
 /** Admin Login */
-router.get('/login',function(req,res) {
+router.post('/login',function(req,res) {
     let username = req.body.username
     let password = req.body.password
     AdminModel.findOne({email: username},function(err,user){
