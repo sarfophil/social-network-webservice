@@ -4,12 +4,12 @@ const User = require('../model/user').getModel;
 
 const bcrypt = require('../util/bcrypt')
 const jwt = require('../util/jwt')
-const path = require('path');
 const notify = require('../util/ws-events')
 const properties = require('../config/properties')
 
 const fservice = require('../service/filestorage-service');
-const uploadPath = require('../public/upload-path').getPath;
+const searchService = require('../service/search-service')
+const Post = require('../model/post')
 
 exports.login = (function(req,res) {
     const username = req.body.username;
@@ -34,7 +34,7 @@ exports.login = (function(req,res) {
 })
 
 //update profile 
-exports.updateProfilePic = (function (req, res, next) {
+exports.updateProfilePic = (function (req, res) {
   let postImages = req.files.picture instanceof Array ? req.files.picture : [req.files.picture]
   
       try {
@@ -56,7 +56,7 @@ exports.updateProfilePic = (function (req, res, next) {
 
 
 // Post to Follow  user 
-exports.followUser = async function (req, res, next) {
+exports.followUser = async function (req, res) {
   let userId = req.params.userId;
   let followId = req.params.followerId;
   var flag = false;
@@ -114,7 +114,7 @@ exports.signUp = function(req,res) {
   let user = new User(requestBody);
 
   // validate inputs
-  user.validate().then((response)=>{
+  user.validate().then(()=>{
     // checks if user is available
     User.exists({ $or: [{email: {$eq: user.email}},{username: {$eq: user.username}}] },(err,isExist) => {
       // if there's any exception
@@ -125,19 +125,19 @@ exports.signUp = function(req,res) {
           if(isExist){
             res.status(200).send('Username/Email already taken another user')
           }else{ 
-            user.save((err,doc) => err? res.sendStatus(500): res.sendStatus(201))
+            user.save((err) => err? res.sendStatus(500): res.sendStatus(201))
           }
       }
       
     })
      
-    }).catch(err => {
+    }).catch(() => {
       res.status(400).send('Invalid Inputs. Please check your inputs')
     })
 }
 
 // Post to Follow  user 
-exports.followUser = async function (req, res, next) {
+exports.followUser = async function (req, res) {
   let userId = req.params.userId;
   let followId = req.params.followerId;
   var flag = false;
@@ -187,7 +187,7 @@ exports.followUser = async function (req, res, next) {
 
 
 // retrieve all follwers of a user
-exports.getUserFollower = async function (req, res, next) {
+exports.getUserFollower = async function (req, res) {
   const user = await User.findOne({ _id: req.params.userId });
   let results = [];
   for (follower of user.followers) {
@@ -213,7 +213,7 @@ exports.getUserFollower = async function (req, res, next) {
 }
 
 // Post to Unfollow  user 
-exports.unfollowUser =  function (req, res, next) {
+exports.unfollowUser =  function (req, res) {
   let userId = req.params.userId;
   let followId = req.params.followerId;
   var flag = true;
@@ -236,7 +236,7 @@ exports.unfollowUser =  function (req, res, next) {
           return Promise.reject('Operation denied');
         }
 
-        User.findOne({ _id: followId }, (err, follower) => {
+        User.findOne({ _id: followId }, (err) => {
           if (err) {
             res.status(404).send('Unable to follow');
           }
@@ -284,55 +284,37 @@ exports.login = (function (req, res) {
     })
   })
 
- async function validateUser(user) {
-    const email = user.email;
-    const password = user.password;
-    const username = user.username;
-    let result = {};
-    let err = false;
-
-    
-  result.userExist = await User.findOne({ email: email }).then((data) => {
-
-      if (data != null) {
-        result.emailExist = true;
-        err = true;
-      }
-
-    })
-
-   result.usrNameExist =  await User.findOne({ username: username }).then((data) => {
-      if (data != null) {
-        result.usernameTaken = true;
-        err = true;
-      }
-    })
-    if (/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(email) == false) {
-      result.email = { error: true, message: "you have entered invalid Email" }
-      err = true;
-    }
-
-    if (password.length < 8) {
-      result.password = { error: true, message: "password must be 8 or above" }
-      err = true;
-    }
-
-
-    result.err = err;
-    
-  return result;  
-  }
 
 
   
+exports.searchUser = (req,res) =>{
+   let searchName = req.params.username;
+   let skip = parseInt(req.params.skip);
+   let limit = parseInt(req.params.limit)
+   searchService.searchUser(searchName,limit,skip,(err,result) => {
+       if(result){
+          let searchResult = [] 
+          result.forEach(r => {
+            searchResult.push({_id: r._id,username:r.username})
+          })
+          res.status(200).send(searchResult)
+       } 
+   })
+}
 
+exports.loadUserPosts = (req,res) => {
+    let userId = req.query.userId;
+    let limit = parseInt(req.param.limit)
+    let skip = parseInt(req.param.skip)
+    Post.findOne({user: userId},(err,doc) => res.send(doc)).limit(limit).skip(skip)
+}
 
 
 // delete Account
-exports.deleteAccount = (function(req,res,next){
+exports.deleteAccount = (function(req,res){
   user.remove({ _id: req.params.userId })
   .exec()
-  .then(result => {
+  .then(() => {
     res.status(200).json({
       message: "User deleted"
     });
