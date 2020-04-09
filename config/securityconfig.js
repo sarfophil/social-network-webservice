@@ -10,7 +10,7 @@ const jwt = require('../util/jwt')
 const allowedRoutes = ['/user/login','/user/account','/admin/login']
 
 function shouldPermit(pathName) {
-    let flag = Utils.find(allowedRoutes,(route) => route == pathName)
+    let flag = Utils.find(allowedRoutes,(route) => route == pathName || /\w+\?\w+=\w+\.\w+$/.test('/download?imagename=image.png'))
     return flag == null ? false : true
 }
 

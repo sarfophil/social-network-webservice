@@ -20,8 +20,15 @@ router.post('/login', userService.login);
 // Update Profile
 router.put('/account/profilepic/:userId',userService.updateProfilePic); 
 
+// user service
+router.get('/search',userService.searchUser)
+
 
 // Deactivate Account
 router.delete("/:userId", userService.deleteAccount);
+
+
+// user posts
+router.get('/:userId/posts',userService.loadUserPosts)
 
 module.exports = router;

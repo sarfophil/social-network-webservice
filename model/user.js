@@ -53,7 +53,9 @@ const user = {
 }
 
 const userSchema = new mongoose.Schema(user);
+userSchema.index({ username: "text" })
 const userModel = mongoose.model('user', userSchema);
+
 
 // virtuals
 userSchema.virtual('number_of_followers').get(() => this.followers.length)

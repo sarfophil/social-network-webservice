@@ -2,6 +2,9 @@ var express = require('express');
 var router = express.Router();
 
 const fservice = require('../service/filestorage-service');
+const fs = require('fs')
+const imageDirectory = require('../public/upload-path')
+const path = require('path')
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
@@ -20,6 +23,16 @@ router.post('/upload-demo',function(req,res,next) {
       res.sendStatus(500)
   }
  
+})
+
+router.get('/download',function(req,res) {
+    fs.readFile(imageDirectory.downloadPath()+req.query.imagename,(err,data) => {
+       if(err){
+          res.sendStatus(404)
+       } else {
+         res.end(data)
+       }
+    })
 })
 
 
