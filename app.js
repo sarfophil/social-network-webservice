@@ -6,6 +6,7 @@ var lessMiddleware = require('less-middleware');
 var logger = require('morgan');
 
 var security = require('./config/securityconfig')
+var cors = require('cors')
 
 
 var indexRouter = require('./routes/index');
@@ -28,6 +29,9 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(lessMiddleware(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(cors({
+  origin: '*'
+}))
 app.use(security.configure().authorize)
 
 // file upload option
