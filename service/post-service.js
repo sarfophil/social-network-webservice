@@ -53,7 +53,7 @@ const postService = {
                     }
 
                     // created
-                    res.sendStatus(201)
+                    res.json({message:"post created"});
 
                 } catch (e) {
                     //
@@ -66,12 +66,13 @@ const postService = {
                 data.post.then(() => { post.save(); })
 
                 // created
-                res.sendStatus(201)
+                res.json({message:"post created"});
+
             }
         }).catch((error) => {   
             console.log(error)
 
-            res.send({error:true , message:"invalid user Id"});
+            res.status(406).json({ message:"invalid user Id"});
         })
     }),
     search: (req, res) => {
