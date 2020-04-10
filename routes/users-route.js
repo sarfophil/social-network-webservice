@@ -5,11 +5,7 @@ const router = express.Router();
 // User Followers Route
 router.get('/:userId/followers',userService.getUserFollower);
 
-// Follow
-router.post('/:userId/followers/:followerId',userService.followUser);
 
-// UnFollow
-router.delete('/:userId/followers/:followerId',userService.unfollowUser);
 
 // Create Account
 router.post('/account',userService.signUp)
@@ -30,5 +26,12 @@ router.delete("/:userId", userService.deleteAccount);
 
 // user posts
 router.get('/:userId/posts',userService.loadUserPosts)
+
+
+//unfollow
+router.put('/:userId/unfollow/:friendId', userService.unfollowUser);
+
+//follow
+router.put('/:userId/follow/:friendId', userService.followUser);
 
 module.exports = router;

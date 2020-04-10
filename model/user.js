@@ -43,8 +43,20 @@ const user = {
         type: Number,
         default: 0
     },
-    followers: [{ref:'user',type: mongoose.Schema.Types.ObjectId}],
-    
+    followers: [{
+        userId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref:'user',
+            required: true
+        }
+    }],
+    following: [{
+        userId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref:'user',
+            required: true
+        }
+    }],
     profilePicture: String,
     role: {
         type: String,
