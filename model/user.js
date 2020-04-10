@@ -43,13 +43,31 @@ const user = {
         type: Number,
         default: 0
     },
-    followers: [{ref:'user',type: mongoose.Schema.Types.ObjectId}],
-    
-    profilePicture: String
+    followers: [{
+        userId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref:'user',
+            required: true
+        }
+    }],
+    following: [{
+        userId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref:'user',
+            required: true
+        }
+    }],
+    profilePicture: String,
+    role: {
+        type: String,
+        default: 'USER_ROLE'
+    }
 }
 
 const userSchema = new mongoose.Schema(user);
+userSchema.index({ username: "text" })
 const userModel = mongoose.model('user', userSchema);
+
 
 // virtuals
 userSchema.virtual('number_of_followers').get(() => this.followers.length)

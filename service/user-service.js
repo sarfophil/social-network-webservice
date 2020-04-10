@@ -4,19 +4,22 @@ const User = require('../model/user').getModel;
 
 const bcrypt = require('../util/bcrypt')
 const jwt = require('../util/jwt')
-const path = require('path');
-const imageUplader = require('../util/imageUploader');
+const notify = require('../util/ws-events')
+const properties = require('../config/properties')
 
 const fservice = require('../service/filestorage-service');
-const uploadPath = require('../public/upload-path').getPath;
+const searchService = require('../service/search-service')
+const Post = require('../model/post')
 
 exports.login = (function(req,res) {
     const username = req.body.username;
     const password = req.body.password;
-    UserModel.findOne({$or : [{username: {$eq: username}},{email: {$eq: username}}]},function (err,user) {
+
+    User.findOne({$or : [{username: {$eq: username}},{email: {$eq: username}}]},function (err,user) {
       if(err) res.statusCode(403)
       let comparePassword = bcrypt.compareSync(password,user.password) 
       if(comparePassword){
+        // sign token 
         jwt.sign(user,(err,token) => {
           if(err) {
               res.status(500).send('Unable to sign token')
@@ -31,37 +34,36 @@ exports.login = (function(req,res) {
 })
 
 //update profile 
-exports.updateProfilePic = (function (req, res, next) {
-  console.log(req.files)
-  let postImages = req.files.images instanceof Array ? req.files.images : [req.files.images]
+exports.updateProfilePic = (function (req, res) {
+  let postImages = req.files.picture instanceof Array ? req.files.picture : [req.files.picture]
+  
+      try {
+          let names = fservice.prepareFiles(postImages).renameAs(req.params.userId).upload().getNames();
+          if(names[0]!=null){
+            User.findById(req.params.userId).then((user)=>{
+              user.profilePicture = names[0];
 
-  const imageName = new Date().getTime();
-                try {
-                    let names = fservice.prepareFiles(postImages).renameAs(new String(imageName)).upload().getNames();
-                    if(names[0]!=null){
-                    User.findById(req.params.userId).then((user)=>{
-                      user.profilePicture = names[0];
-                      console.log(imageName + " " + names[0])
-                      user.save().then(()=>{
-                        res.send({ data: req.body, imageUpload: { eror: true, message: "User profile picture updated succesfully" } });
-                      })
-                    })
-                  }
-                } catch (e) {
-                    throw new Error(e);
-                }
+              user.save().then(()=>{
+                res.sendStatus(200)
+              })
 
+            })
+        }
+      } catch (e) {
+          res.sendStatus(500)
+      }
 })
 
+
 // Post to Follow  user 
-exports.followUser = async function (req, res, next) {
+exports.followUser = async function (req, res) {
   let userId = req.params.userId;
   let followId = req.params.followerId;
   var flag = false;
 
   let user = await User.findOne({ _id: userId });
   if (!user) {
-    return Promise.reject('User not found');
+    res.status(404).send('user not found')
   }
 
   for (let f of user.followers) {
@@ -75,7 +77,7 @@ exports.followUser = async function (req, res, next) {
   }
   else {
     if (userId === followId) {
-      return Promise.reject('Operation denied');
+      res.status(403).send('Operation denied')
     }
 
     User.findOne({ _id: followId }, (err, follower) => {
@@ -87,90 +89,76 @@ exports.followUser = async function (req, res, next) {
         if (err) throw err;
         user.followers.push(new ObjectId(followId));
         user.save();
+
+        //send user a notify about the follow
+        notify([user.email],{follower: follower,reason: properties.appcodes.follow})
+
       });
     });
+    
+    
 
     res.status(200).send('following  successfully');
   }
 
 }
 
-exports.signUp = (function (req, res, next) {
-  const imagePath = new Date().getTime();
 
-  validateUser(req.body).then((data) => {
-    console.log("data " , data);
-    console.log("inside vlaidate user return promise", data);
-    if (data != null) {
-      if (data.err == true) {
-        res.send(data);
-      }
-      else {
+// Account creation
+exports.signUp = function(req,res) {
+  let requestBody = req.body
+ 
+  // hash password
+  requestBody.password = bcrypt.encodeSync(requestBody.password)
 
+  let user = new User(requestBody);
 
-        const pass = bcrypt.encodeSync(req.body.password)
-       let user =  new User({
-          username: req.body.username,
-          email: req.body.email,
-          password: pass,
-          age: req.body.age,
-          isActive: true,
-          location: req.body.location,
-          totalVoilation: 0,
-          followers: [],
-         profilePicture : null
-
-        });
-        
-        if(req.files!=null){
-        let postImages = req.files.images instanceof Array ? req.files.images : [req.files.images]
-
+  // validate inputs
+  user.validate().then(()=>{
+    // checks if user is available
+    User.exists({ $or: [{email: {$eq: user.email}},{username: {$eq: user.username}}] },(err,isExist) => {
+      // if there's any exception
+      if(err){
+        res.sendStatus(500)
+      }else{
          
-            try {
-              let names = fservice.prepareFiles(postImages).renameAs(new String(imagePath)).upload().getNames();
-              if(names[0]!=null){
-                user.profilePicture= imagePath;
-            }
-            
-          } catch (e) {
-              throw new Error(e);
+          if(isExist){
+            res.status(200).send('Username/Email already taken another user')
+          }else{ 
+            user.save((err) => err? res.sendStatus(500): res.sendStatus(201))
           }
-        }
-          user.save().then((err)=>{
-           
-              res.sendStatus(201);
-            
-          })
-        
       }
+      
+    })
+     
+    }).catch(() => {
+      res.status(400).send('Invalid Inputs. Please check your inputs')
+    })
+}
 
-    }
-  }).catch((err) => {
-    throw new Error(err);
-  })
-})
-// Post to Unfollow  user 
-exports.unfollowUser = async function (req, res, next) {
+// Post to Follow  user 
+exports.followUser = async function (req, res) {
   let userId = req.params.userId;
   let followId = req.params.followerId;
-  var flag = true;
+  var flag = false;
 
   let user = await User.findOne({ _id: userId });
   if (!user) {
-    return Promise.reject('User not found');
+    res.status(404).send('user not found')
   }
+
   for (let f of user.followers) {
     if (f == followId) {
-      flag = false;
+      flag = true;
       break;
     }
   }
   if (flag == true) {
-    res.status(200).send('unfollowing is not success');
+    res.status(200).send('following is not success');
   }
   else {
     if (userId === followId) {
-      return Promise.reject('Operation denied');
+      res.status(403).send('Operation denied')
     }
 
     User.findOne({ _id: followId }, (err, follower) => {
@@ -180,93 +168,235 @@ exports.unfollowUser = async function (req, res, next) {
 
       User.findOne({ _id: userId }, (err, user) => {
         if (err) throw err;
-        user.followers.remove(followId);
+        user.followers.push(new ObjectId(followId));
         user.save();
+
+        //send user a notify about the follow
+        notify([user.email],{follower: follower,reason: properties.appcodes.follow})
+
       });
     });
+    
+    
 
-    res.status(200).send('unfollowing  successfully');
+    res.status(200).send('following  successfully');
   }
 
 }
+
+
+
+// retrieve all follwers of a user
+exports.getUserFollower = async function (req, res) {
+  const user = await User.findOne({ _id: req.params.userId });
+  let results = [];
+  for (follower of user.followers) {
+    foll = await User.aggregate([{ $match: { _id: follower } }]).project({
+      username: 1,
+      email: 1,
+      age: 1,
+      profilePicture: 1
+    });
+
+    results.push(foll);
+  }
+
+
+  let flatResult = Utils.flatMap(results,functor=>{
+    return functor[0];
+  });
+  Promise.resolve(flatResult)
+    .then(f => {
+      res.status(200).send(f);
+    })
+    .catch(err => new Error(err));
+}
+
+// Post to Unfollow  user 
+exports.unfollowUser =  function (req, res) {
+  let userId = req.params.userId;
+  let followId = req.params.followerId;
+  var flag = true;
+
+  User.findOne({ _id: userId },(err,user) => {
+      if (!user) {
+        res.status(404).send('User not found')
+      }
+      for (let f of user.followers) {
+        if (f == followId) {
+          flag = false;
+          break;
+        }
+      }
+      if (flag == true) {
+        res.status(200).send('unfollowing is not success');
+      }
+      else {
+        if (userId === followId) {
+          return Promise.reject('Operation denied');
+        }
+
+        User.findOne({ _id: followId }, (err) => {
+          if (err) {
+            res.status(404).send('Unable to follow');
+          }
+
+          User.findOne({ _id: userId }, (err, user) => {
+            if (err) throw err;
+            user.followers.remove(followId);
+            user.save();
+          });
+        });
+
+        //send user a notify about the follow
+        notify([user.email],{reason: properties.appcodes.unfollow})
+
+        res.status(200).send('unfollowing  successfully');
+      }
+  });
+
+
+}
+
+
 exports.login = (function (req, res) {
     const username = req.body.username;
     const password = req.body.password;
     User.findOne({ $or: [{ username: { $eq: username } }, { email: { $eq: username } }] }, function (err, user) {
-      if (err) res.statusCode(403)
-      let comparePassword = bcrypt.compareSync(password, user.password)
-      if (comparePassword) {
-        jwt.sign(user, (err, token) => {
-          if (err) {
-            res.status(500).send('Unable to sign token')
-          } else {
-            res.status(200).send({ access_token: token })
-          }
-        })
-      } else {
-        res.sendStatus(403)
+      if (err || !user){
+         res.sendStatus(403)
+      }else{
+        let comparePassword = bcrypt.compareSync(password, user.password)
+        if (comparePassword) {
+          jwt.sign(user, (err, token) => {
+            if (err) {
+              res.status(500).send('Unable to sign token')
+            } else {
+              res.status(200).send({ access_token: token,user: user })
+            }
+          })
+        } else {
+          res.sendStatus(403)
+        }
       }
-    }).catch((err) => {
-      throw new Error(err);
+      
     })
   })
 
- async function validateUser(user) {
-    const email = user.email;
-    const password = user.password;
-    const username = user.username;
-    let result = {};
-    let err = false;
-
-    
-  result.userExist = await User.findOne({ email: email }).then((data) => {
-      console.log("message...........................",data)
-      if (data != null) {
-        result.emailExist = true;
-        err = true;
-      }
-
-    })
-
-   result.usrNameExist =  await User.findOne({ username: username }).then((data) => {
-      if (data != null) {
-        result.usernameTaken = true;
-        err = true;
-      }
-    })
-    if (/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(email) == false) {
-      result.email = { error: true, message: "you have entered invalid Email" }
-      err = true;
-    }
-
-    if (password.length < 8) {
-      result.password = { error: true, message: "password must be 8 or above" }
-      err = true;
-    }
-
-    
-  return result;  
-  }
 
 
   
+exports.searchUser = (req,res) =>{
+   let searchName = req.params.username;
+   let skip = parseInt(req.params.skip);
+   let limit = parseInt(req.params.limit)
+   searchService.searchUser(searchName,limit,skip,(err,result) => {
+       if(result){
+          let searchResult = [] 
+          result.forEach(r => {
+            searchResult.push({_id: r._id,username:r.username})
+          })
+          res.status(200).send(searchResult)
+       } 
+   })
+}
 
+exports.loadUserPosts = (req,res) => {
+    let userId = req.query.userId;
+    let limit = parseInt(req.param.limit)
+    let skip = parseInt(req.param.skip)
+    Post.findOne({user: userId},(err,doc) => res.send(doc)).limit(limit).skip(skip)
+}
 
 
 // delete Account
-exports.deleteAccount = (req, res, next) => {
+exports.deleteAccount = (function(req,res){
   user.remove({ _id: req.params.userId })
-    .exec()
-    .then(result => {
-      res.status(200).json({
-        message: "User deleted"
-      });
-    })
-    .catch(err => {
-      console.log(err);
-     
-      res.status(500).json({
-        error: err
-      });
+  .exec()
+  .then(() => {
+    res.status(200).json({
+      message: "User deleted"
     });
+  })
+  .catch(err => {
+    res.status(500).json({
+      error: err
+    });
+  });
+})
+
+//follow user
+exports.followUser = (req, res, next) => {
+
+  followOrUnfollow(req, res, 'follow');
 }
+
+//unfollow user
+exports.unfollowUser = (req, res, next) => {
+
+  followOrUnfollow(req, res, 'unfollow');
+}
+
+function followOrUnfollow(req, res, key) {
+  var ObjectID = require('mongodb').ObjectID;
+  const userId = ObjectID(req.params.userId);
+  const friendId = ObjectID(req.params.friendId);
+  if (key == 'follow') {
+      User.findById(userId).then((user) => {
+          const exist = user.following.map(function(e) {
+              return e.userId;
+          }).indexOf(friendId);
+          if (exist != -1) {
+              res.send({ message: "you have already followd this user" });
+          } else {
+
+              user.following.push({ userId: friendId })
+              user.save().then((data) => {
+                  console.log(data);
+                  if (!data) {
+                      res.send({ message: "unable to follow " })
+                      return 0;
+                  } else {
+
+                      User.findById(friendId).then((user2) => {
+                          user2.followers.push({ userId: userId })
+                          user2.save().then(() => {
+                              if (!data) {
+                                  res.send({ message: "unable to follow " })
+                              } else {
+                                  res.send(201)
+                              }
+                          })
+                      })
+
+                  }
+              }).catch(err => console.log(err));
+          }
+      })
+
+  }
+  if (key == "unfollow") {
+
+      User.updateOne({ '_id': userId }, { $pull: { following: { userId: friendId } } }, (err, data) => {
+          if (err) {
+              res.send({ message: "unable to follow  " })
+
+          } else if (data.nModified > 0) {
+              User.updateOne({ '_id': friendId }, { $pull: { followers: { 'userId': userId } } }, (err2, data2) => {
+                  if (err2) {
+                      res.send({ message: "unable to unfollow 2" })
+                  } else if (data2.nModified > 0) {
+                      res.send(201);
+                  } else {
+                      res.send("you are not following this user 2");
+                  }
+              })
+          } else {
+              res.send("you are not following this user");
+          }
+      })
+
+  }
+}
+
+

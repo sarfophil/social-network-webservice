@@ -6,10 +6,11 @@ var lessMiddleware = require('less-middleware');
 var logger = require('morgan');
 
 var security = require('./config/securityconfig')
+var cors = require('cors')
 
 
 var indexRouter = require('./routes/index');
-// var userRouter = require('./routes/users-route');
+var userRouter = require('./routes/users-route');
 var postRouter = require('./routes/post-route');
 var adminRouter = require('./routes/admin-route');
 
@@ -28,7 +29,10 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(lessMiddleware(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(security.authorize)
+app.use(cors({
+  origin: '*'
+}))
+app.use(security.configure().authorize)
 
 // file upload option
 app.use(fileUpload({
@@ -37,7 +41,7 @@ app.use(fileUpload({
 
 
 app.use('/', indexRouter);
-// app.use('/users', userRouter);
+app.use('/user', userRouter);
 app.use('/posts',postRouter);
 app.use('/admin',adminRouter)
 
@@ -55,6 +59,7 @@ app.use(function(err, req, res, next) {
   // render the error page
   res.status(err.status || 500);
   res.render('error');
+
 });
 
 module.exports = app;

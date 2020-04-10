@@ -1,61 +1,77 @@
-const path = require('path');
 const Post = require('../model/post').getModel;
-var fileSystem = require('fs');
-const mongoose = require('mongoose');
 const searchService = require('../service/search-service')
-const blacklistService = require('./blacklistedpost-service')
-const imageUplader = require('../util/imageUploader');
 
 const fservice = require('../service/filestorage-service');
-const uploadPath = require('../public/upload-path').getPath;
+const wsutil = require('../util/ws-events')
+const properties = require('../config/properties')
+const Utils = require('../util/apputil')
+const comment = require('../model/comment')
+
 
 
 const postService = {
+    
     create: (function (req, res, next) {
-        console.log("notify me",req.body);
-        const imageName = new String(new Date().getTime());
         let post = new Post({
-            "imageLink": imageName,
-            "user": mongoose.Types.ObjectId('5e8bac83e37a22312b353ccc'),
+            "user": req.body.user,
             "content": req.body.content,
-            "audienceCriteria": JSON.parse(req.body.audienceCriteria),
-            "audienceLocation": JSON.parse(new String(req.body.audienceLocation).trim()),
-            "audienceFollowers": JSON.parse(req.body.audienceFollowers),
-            "notifyFollowers": req.body.notifyFollowers,
-            "likes": null
+            "audienceCriteria": {
+                age: req.body.ageGroupTarget? JSON.parse(req.body.ageGroupTarget):null
+            },
+            "audienceLocation": {
+                coordinates: req.body.coordinates? JSON.parse(req.body.coordinates):[0,0]
+            },
+            "audienceFollowers": req.body.targetFollowers? JSON.parse(req.body.targetFollowers): null,
+            "notifyFollowers": req.body.notifyFollowers
         });
 
+        
 
         post.createOrUpdatePost().then((data) => {
-
+          
 
             if (data.isActive === false) {
+                // Account Deactivated
                 res.status(403); res.send({ error: true, message: "your account has been deactivated" });
-            }
-            else if (data.ExceedUNhealthyPost === true) {
-                res.send({ error: true, message: "you have exceded number of unhelthy post your; account has been deactivated; you will rescive email shortly " });
-            }
+           
+            } else if (data.ExceedUNhealthyPost === true) {
+                // unhealthy post
+                res.send({ error: true, message: "you have exceded number of unhelthy post your account has been deactivated; you will rescive email shortly " });
+           
+            } else if (req.files != null) {
 
-            else if (req.files != null) {
-                let postImages = req.files.images instanceof Array ? req.files.images : [req.files.images]
+                let postImages = req.files.imageLink instanceof Array ? req.files.imageLink : [req.files.imageLink]
 
                 try {
+                    // upload images
+                    post.imageLink = fservice.prepareFiles(postImages).renameAs(post._id.toString()).upload().getNames(); 
 
-                    let names = fservice.prepareFiles(postImages).renameAs(imageName).upload().getNames();
-                    res.send({ data: req.body, imageUpload: { eror: false, message: "post created successfully" } });
+                    // send Websocket Notification followers
+                    if(post.notifyFollowers){
+                        let targetUsers = post.audienceFollowers;
+                        publishNotification(targetUsers)
+                    }
+
+                    // created
+                    res.sendStatus(201)
 
                 } catch (e) {
-                    throw new Error(err);
+                    //
+                    console.log(`Error: ${e}`)
+                    res.status(500).send('Unable upload pictures')
                 }
 
-            }
-            else {
-                post.imageLink = null;
+            } else {
+
                 data.post.then(() => { post.save(); })
-                res.send({ eror: false, message: "i" });
+
+                // created
+                res.sendStatus(201)
             }
-        }).catch(() => {
-            // throw new Error(err);
+        }).catch((error) => {   
+            console.log(error)
+
+            res.send({error:true , message:"invalid user Id"});
         })
     }),
     search: (req, res) => {
@@ -81,17 +97,40 @@ const postService = {
                 data.populate('audienceFollowers.user').execPopulate().then((data) => { res.send(data.audienceFollowers) }).catch((err) => console.log(err));
         })
     },
-    getAll: async (req, res, next) => {
+    getAll: (req, res, next) => {
         const page = new Number(req.query.page);
         const limit = new Number(req.query.limit);
-        let posts = await Post.find({})
-            .limit(limit).skip(page * limit)
-            .sort({ 'createdDate': 1 })
-            .exec(function (err, docs) {
-                if (err) throw new Error(err)
+        const userId = req.query.user;
+        
+        Post.find({
+            $or: [{user: {$eq: userId}},{"audienceFollowers.user": userId}],
+            isHealthy: true
+        }).limit(limit).skip(page).sort({ 'createdDate': -1 })
+        .exec(function (err, docs) {
                 res.send(docs);
-            });
+        });
 
+    },
+    getNearbyPost: (req,res) => {
+        const page = new Number(req.query.page);
+        const limit = new Number(req.query.limit);
+        const userId = req.query.user;
+        
+        Post.find({
+            user: {$not: {$eq: userId}},
+            "audienceFollowers.user": {$not: {$eq: userId}},   
+            audienceLocation:{
+                    $near: {
+                        $geometry: {type: "Point",coordinates: cord},
+                        $minDistance: properties.geoDistance.minDistance,
+                        $maxDistance: properties.geoDistance.maxDistance
+                    }
+                },
+            isHealthy: true
+        }).sort({createdDate: -1}).skip(page).limit(limit)
+        .exec((err,posts) => {
+            res.send(posts)
+        })
     },
     getlikes: (req, res, next) => {
         const id = req.params.postId;
@@ -105,6 +144,9 @@ const postService = {
             res.send({ error: false, message: "post deleted successfully" });
         }).catch((err) => { throw new Error(err); })
     },
+    /**
+     * @deprecated
+     */
     update: (req, res, next) => {
 
         Post.findById(req.params.postId).then((post) => {
@@ -147,8 +189,90 @@ const postService = {
             }).catch((err) => { throw new Error(err) });
 
         })
+    },
+
+    like: (req,res) => {
+        let postId = req.params.postId;
+        let userId = req.params.userId;
+        
+        Post.findOne({_id: postId},(err,post) => {
+            if (err) {
+                res.sendStatus(404)
+            } else {
+                let isExist = Utils.find(post.likes,(like) => like.toString() === userId.toString())
+                if(!isExist)
+                    post.likes.push(userId)
+
+                // save to db
+                post.save() 
+
+                res.sendStatus(200)
+            }
+        })
+       
+    },
+
+    unlike: (req,res) => {
+        let postId = req.params.postId;
+        let userId = req.params.userId;
+
+        
+        PostModel.findOne({_id: postId},(err,post) => {
+            if(err){
+                res.sendStatus(404)
+            } else {     
+                let likes = Utils.remove(post.likes,(like) => {
+                    return like.toString() === userId
+                })
+ 
+                // assign new likes to the object
+                post.likes = likes
+
+                post.save()
+
+                res.sendStatus(200)
+            }
+        })
+
+
+        
+    },
+
+    commentPost: (req,res) => {
+        let requestBody = req.body
+        let postId = req.params.postId
+        let userId = req.params.userId
+        let comment = new Comment({content: requestBody.content,postId: postId,user: userId})
+        let valid = comment.validateSync()
+        if(valid){
+            res.status(400).send('Input validation error')
+        } else {
+            comment.save()
+
+            res.status(202).send()
+        }
+    },
+
+    deleteComment: (req,res) => {
+        let commentId = req.params.commentId;
+        commentModel.deleteOne({_id: commentId},(err) => console.log(`${err}`))
+        res.sendStatus(200)
     }
 
+}
+
+/**
+ * Send Notification to target users
+ * @param {User} targetUsers 
+ */
+function publishNotification(targetUsers){
+    if(!targetUsers){ 
+        let targetEmails = [];
+        for(let user of targetUsers){
+            targetEmails.push(user.email)
+        }
+        wsutil(targetEmails,{reason: properties.appcodes.newPost})
+    }
 }
 
 

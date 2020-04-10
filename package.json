@@ -1,6 +1,6 @@
 {
   "name": "social-network-group",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "private": true,
   "scripts": {
     "start": "nodemon ./bin/www",
@@ -10,6 +10,7 @@
     "aws-sdk": "^2.653.0",
     "bcrypt": "^4.0.1",
     "cookie-parser": "~1.4.4",
+    "cors": "^2.8.5",
     "debug": "~2.6.9",
     "ejs": "~2.6.1",
     "express": "^4.16.4",

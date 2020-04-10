@@ -1,29 +1,72 @@
-// const Advertisement = require('../model/advertisement');
 
-const postAdvertisement = (req, res, next) => ({
-    title: req.body.title,
-    content: req.body.content,
-    link: req.body.link,
-    banner: req.body.banner,
-    createdDate: req.body.createdDate,
-    owner: req.body.owner,
-    audienceCriteriaMinAge: req.body.audienceCriteria.age.min,
-    audienceCriteriaMaxAge: req.body.audienceCriteria.age.max,
-    audienceLocationType: req.body.audienceLocation.type,
-    audienceCoordinates: req.body.audienceLocation.coordinates,
-    advertisementLikes: req.body.likes,
-    commentsUsername: req.body.comments.username,
-    commentsEmail: req.body.comments.email,
-    commentsMessage: req.body.comments.message,
-    commentsLikes: req.body.comments.likes
-}).then(()=>{
-    res.status(201).json({
-        message:'Ad Saved Successfully'
-    }).catch((error)=>{
-        res.status(400).json({
-            error:error
-        });
-    });
-});
+/**
+ * Advertisement Service is responsible for providing adversitement services
+ * All interactions to the database are transactional
+ */
 
-module.exports = postAdvertisement;
+const AdvertisementDomain = require('../model/advertisement')
+const AdvertisementModel = AdvertisementDomain.advertisementModel;
+const userDomain = require('../model/user')
+const userModel = userDomain.getModel;
+const config = require('../config/properties')
+
+const adversitementImpl = {
+    // Method for posting Ad to the platform
+    'postAd': function (advert,callback) {
+       advert.save().then(()=>{
+            callback()
+       }).catch(err=>{
+           callback(err)
+       })
+    },
+    'loadPostByAdminId':function (adminId,resultCallback) {
+        AdvertisementModel.findOne({owner: adminId},(err,doc)=>{
+            resultCallback(doc)
+        })
+    },
+    // Method will load post requested by the user. It will depend on the user age and criteria
+    'loadAllPost': function (userId,cord,limit,skip,resultCallback) {
+       
+        userModel.findById({_id: userId},function (err,user) { 
+            if(!err)    
+                 getPost(user)
+        })
+
+        function getPost(user){
+
+           let request =  AdvertisementModel.find(
+                {
+                    $or: [
+                        {"audienceCriteria.age.min": {$eq: user.age}},
+                        {"audienceCriteria.age.max": {$gte: user.age}}
+                    ],
+                    audienceLocation:{
+                        $near: {
+                            $geometry: {type: "Point",coordinates: cord},
+                            $minDistance: config.geoDistance.minDistance,
+                            $maxDistance: config.geoDistance.maxDistance
+                        }
+                    }
+                    
+                }
+            )
+            .sort({createdDate: -1})
+            .limit(limit)
+            .skip(skip)    
+            .exec()
+           
+
+            request.then((res)=>{
+                resultCallback(res)
+            }).catch((err)=> console.log(err))
+
+        }
+
+        
+      
+    }
+}
+
+
+
+module.exports = adversitementImpl;

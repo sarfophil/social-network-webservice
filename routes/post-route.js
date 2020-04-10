@@ -2,16 +2,9 @@ var express = require('express');
 var router = express.Router();
 const postService = require('../service/post-service')
 
-const searchService = require('../service/search-service')
-
-const bcrypt = require('../util/bcrypt')
-const jwt = require('../util/jwt')
-
-
 
 // search post
 router.get('/search',postService.search)
-
 //Create post
 router.post('/',postService.create);
 //Get post by Id
@@ -26,4 +19,16 @@ router.get('/',postService.getAll);
 router.delete('/:postId',postService.delete)
 //updatePost
 router.put('/:postId',postService.update)
+// nearby post
+router.get('/nearby',postService.getNearbyPost)
+// like post
+router.put('/:postId/user/:userId/likes',postService.like)
+// unlike post
+router.delete('/:postId/user/:userId/likes',postService.unlike)
+// comment comment
+router.post('/:postId/user/:userId/comments',postService.commentPost)
+// remove comment 
+router.delete('/:postId/user/:userId/comments',postService.deleteComment)
+
+
 module.exports = router;
