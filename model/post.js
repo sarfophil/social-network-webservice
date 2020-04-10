@@ -83,7 +83,7 @@ postSchema.methods.createOrUpdatePost = async function() {
         }
         else {
              return  validatePostContent(this.content).then((isUnhealty) => {
-
+                
                 if (isUnhealty) {
                     this.isHealthy = 'no';
                     ExceedUNhealthyPost(this.user).then((result)=>{
@@ -120,9 +120,12 @@ function  validatePostContent(content) {
      return result = BlacklistKeywords.find().then((data) => {
         let isUnhealty = false;
         data.findIndex(data => {
+            console.log(data);
             isUnhealty = content.includes(data.word)
             console.log("data",isUnhealty);
-            isUnhealty = true
+            console.log(isUnhealty)
+            if(isUnhealty)
+            return true;
         })
         return isUnhealty;
     });

@@ -12,6 +12,7 @@ const uploadPath = require('../public/upload-path').getPath;
 
 const postService = {
     create: (function (req, res, next) {
+        console.log("notify me",req.body);
         const imageName = new String(new Date().getTime());
         let post = new Post({
             "imageLink": imageName,
