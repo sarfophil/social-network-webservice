@@ -5,7 +5,8 @@ const fservice = require('../service/filestorage-service');
 const wsutil = require('../util/ws-events')
 const properties = require('../config/properties')
 const Utils = require('../util/apputil')
-const comment = require('../model/comment')
+const Comment = require('../model/comment')
+const userModel = require('../model/user').getModel
 
 
 
@@ -243,15 +244,38 @@ const postService = {
         let requestBody = req.body
         let postId = req.params.postId
         let userId = req.params.userId
-        let comment = new Comment({content: requestBody.content,postId: postId,user: userId})
-        let valid = comment.validateSync()
-        if(valid){
-            res.status(400).send('Input validation error')
-        } else {
-            comment.save()
+       
+        userModel.findOne({_id: userId},(err,user) => {
+            let comment = new Comment({content: requestBody.content,postId: postId,user: user})
+       
+            let valid = comment.validateSync()
+            if(valid){
+                res.status(400).send('Input validation error')
+            } else {
+                comment.save()
+    
+                res.status(202).send()
+            }
+        })
+       
+    },
 
-            res.status(202).send()
+    getComments: (req,res) => {
+        try{
+            let skip = parseInt(req.query.skip);
+            let limit = parseInt(req.query.limit);
+            let postId = req.params.postId;
+            
+            Comment.find({postId: postId},function(err,comments) {
+          
+                res.status(200).send(comments)
+
+
+            }).limit(limit).skip(skip).sort({createdDate: -1})
+        }catch(Error){
+            res.status(200).send([])
         }
+        
     },
 
     deleteComment: (req,res) => {
