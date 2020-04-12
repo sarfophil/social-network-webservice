@@ -10,6 +10,7 @@ const nodemailer = require("../util/nodemailer");
 const Schema = mongoose.Schema;
 const wsutil = require("../util/ws-events")
 const properties = require("../config/properties")
+const comment = require("./comment")
 
 const postSchema = new Schema({
     user: {
@@ -101,10 +102,15 @@ postSchema.methods.createOrUpdatePost = async function() {
             })
         }
     })
+ }
 
-     
-  
-  }
+postSchema.methods.countComments = (postId,cb) => {
+
+    comment.countDocuments({postId: postId},(err,comments) => {
+        cb(comments)
+    })
+}
+
 
 
 //filtering unhealthy post
@@ -157,7 +163,6 @@ async function ExceedUNhealthyPost(userId) {
     });
 
 }
-
 
 
 
