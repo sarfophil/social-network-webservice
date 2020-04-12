@@ -190,7 +190,7 @@ exports.followUser = async function (req, res) {
 
 // retrieve all follwers of a user
 exports.getUserFollower = async function (req, res) {
-  User.findOne(ObjectId(req.params.userId)).then((user) => {
+  User.findOne(ObjectId(req.principal.payload._id)).then((user) => {
     console.log(user);
     user.populate({path:'followers.userId',select: 'username'})
     .execPopulate().then((data) => { res.send(data.followers) })

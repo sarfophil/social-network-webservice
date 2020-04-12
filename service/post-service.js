@@ -12,8 +12,10 @@ const comment = require('../model/comment')
 const postService = {
     
     create: (function (req, res, next) {
+      
+
         let post = new Post({
-            "user": req.body.user,
+            "user": req.principal.payload._id,
             "content": req.body.content,
             "audienceCriteria": {
                 age: req.body.ageGroupTarget? JSON.parse(req.body.ageGroupTarget):null
@@ -101,13 +103,17 @@ const postService = {
     getAll: (req, res, next) => {
         const page = new Number(req.query.page);
         const limit = new Number(req.query.limit);
-        const userId = req.query.user;
-        
         Post.find({
-            $or: [{user: {$eq: userId}},{"audienceFollowers.user": userId}],
+             $or: [{user: {$eq: req.principal.payload._id}},{"audienceFollowers.user": req.principal.payload._id}],
             isHealthy: true
-        }).limit(limit).skip(page).sort({ 'createdDate': -1 })
-        .exec(function (err, docs) {
+        }).limit(limit).skip(page*limit).sort({ 'createdDate': -1 }).populate(
+            {path: 'user',
+        match: { isActive: true },
+        select: 'username _id profilePicture'})
+        .populate(
+            {path: 'likes.user',
+        select: 'username _id profilePicture'}).exec(function (err, docs) {
+            
                 res.send(docs);
         });
 
@@ -205,7 +211,7 @@ const postService = {
                     post.likes.push(userId)
 
                 // save to db
-                post.save() 
+                post.save().then().catch(err=>console.log(err));
 
                 res.sendStatus(200)
             }
