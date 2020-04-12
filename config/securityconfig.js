@@ -1,8 +1,8 @@
 /**
  * Security
  */
-const Utils = require('../util/apputil')
-const jwt = require('../util/jwt')
+const Utils = require('../util/apputil');
+const jwt = require('../util/jwt');
 
 
 
@@ -10,7 +10,7 @@ const jwt = require('../util/jwt')
 const allowedRoutes = ['/user/login','/user/account','/admin/login']
 
 function shouldPermit(pathName) {
-    let flag = Utils.find(allowedRoutes,(route) => route == pathName || /\w+\?\w+=\w+\.\w+$/.test('/download?imagename=image.png'))
+    let flag = Utils.find(allowedRoutes,(route) => route === pathName)
     return flag == null ? false : true
 }
 
@@ -35,6 +35,11 @@ function route(routeArgs) {
     }
 }
 
+/**
+ *
+ * @param request
+ * @param callback
+ */
 function authorizationFilter(request,callback) {
     let pathName = Utils.findAbsPath(req.path);
     let checkRoute = Utils.find(routes,(route) => {
@@ -83,7 +88,7 @@ const security = {
             }else{   
                 res.sendStatus(403)
             }
-        }else{     
+        }else{
             next()
         }
     }

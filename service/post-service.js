@@ -143,7 +143,7 @@ const postService = {
     },
     delete: (req, res, next) => {
         Post.deleteOne(req.params.postId).then(() => {
-            res.send({ error: false, message: "post deleted successfully" });
+            res.sendStatus(204)
         }).catch((err) => { throw new Error(err); })
     },
     /**
@@ -232,7 +232,7 @@ const postService = {
 
                 post.save()
 
-                res.sendStatus(200)
+                res.sendStatus(204)
             }
         })
 
@@ -278,10 +278,24 @@ const postService = {
         
     },
 
+    countTotalComment: (req,res) => {
+       try{
+           let postId = req.params.postId;
+           Post.findOne({_id: postId},(err,post) => {
+               post.countComments(postId,(count) =>  {
+                   console.log(`${count}`);
+                   res.status(200).send({comments: count})
+               })
+           })
+       } catch (e) {
+           res.status(200).send({comments: 0})
+       }
+    },
+
     deleteComment: (req,res) => {
         let commentId = req.params.commentId;
-        commentModel.deleteOne({_id: commentId},(err) => console.log(`${err}`))
-        res.sendStatus(200)
+        Comment.deleteOne({_id: commentId},() => console.log(`${commentId}: Removed`));
+        res.sendStatus(204)
     }
 
 }
