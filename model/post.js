@@ -82,7 +82,7 @@ postSchema.methods.createOrUpdatePost = async function() {
         }
         else {
              return  validatePostContent(this.content).then((isUnhealty) => {
-
+                
                 if (isUnhealty) {
                     this.isHealthy = 'no';
                     ExceedUNhealthyPost(this.user).then((result)=>{

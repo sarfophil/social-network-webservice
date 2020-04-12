@@ -9,7 +9,10 @@ const notify = require('../util/ws-events')
 const properties = require('../config/properties')
 
 const fservice = require('../service/filestorage-service');
-const uploadPath = require('../public/upload-path').getPath;
+const searchService = require('../service/search-service')
+const Post = require('../model/post')
+const mongoose = require('mongoose')
+// const Utils = require('../util/apputil')
 
 exports.login = (function (req, res) {
   const username = req.body.username;
@@ -34,7 +37,7 @@ exports.login = (function (req, res) {
 })
 
 //update profile 
-exports.updateProfilePic = (function (req, res, next) {
+exports.updateProfilePic = (function (req, res) {
   let postImages = req.files.picture instanceof Array ? req.files.picture : [req.files.picture]
 
   try {
@@ -54,6 +57,7 @@ exports.updateProfilePic = (function (req, res, next) {
   }
 })
 
+
 // Account creation
 exports.signUp = function (req, res) {
   let requestBody = req.body
@@ -64,7 +68,7 @@ exports.signUp = function (req, res) {
   let user = new User(requestBody);
 
   // validate inputs
-  user.validate().then((response) => {
+  user.validate().then(() => {
     // checks if user is available
     User.exists({ $or: [{ email: { $eq: user.email } }, { username: { $eq: user.username } }] }, (err, isExist) => {
       // if there's any exception
@@ -73,44 +77,34 @@ exports.signUp = function (req, res) {
       } else {
 
         if (isExist) {
-          res.status(200).send('Username/Email already taken another user')
+          res.status(403).send('Username/Email already taken another user')
         } else {
-          user.save((err, doc) => err ? res.sendStatus(500) : res.sendStatus(201))
+          user.save((err) => err ? res.sendStatus(500) : res.json({ message: "User Scuccessfully Created" }))
         }
       }
 
     })
 
-  }).catch(err => {
+  }).catch(() => {
     res.status(400).send('Invalid Inputs. Please check your inputs')
   })
 }
 
+
+
 // retrieve all follwers of a user
-exports.getUserFollower = async function (req, res, next) {
-  const user = await User.findOne({ _id: req.params.userId });
-  let results = [];
-  for (follower of user.followers) {
-    foll = await User.aggregate([{ $match: { _id: follower } }]).project({
-      username: 1,
-      email: 1,
-      age: 1,
-      profilePicture: 1
-    });
-
-    results.push(foll);
-  }
-
-
-  let flatResult = Utils.flatMap(results, functor => {
-    return functor[0];
-  });
-  Promise.resolve(flatResult)
-    .then(f => {
-      res.status(200).send(f);
+exports.getUserFollower = async function (req, res) {
+  User.findOne(ObjectId(req.params.userId)).then((user) => {
+    user.populate({path:'followers.userId',select: 'username'})
+    .execPopulate().then((data) => { 
+      res.status(200).send(data.followers);
     })
-    .catch(err => new Error(err));
+    .catch((err) => {
+      new Error(err);
+    });
+  });
 }
+
 
 
 // Post to Follow  user 
@@ -134,7 +128,6 @@ exports.followUser = async function (req, res, next) {
     res.status(200).send(`You are already a follower of ${user.username} or you trying to follow yourself`);
   } else {
     User.findOne({ _id: followId }, (err, follower) => {
-      console.log(follower);
       if (err||!follower) {
         res.status(200).send('Unable to follow');
       } else {
@@ -176,7 +169,6 @@ exports.unfollowUser = function (req, res, next) {
         if (err) {
           res.status(404).send('Unable to follow');
         }
-
         User.findOne({ _id: userId }, (err, user) => {
           if (err) throw err;
           user.followers.remove(followId);
@@ -186,10 +178,9 @@ exports.unfollowUser = function (req, res, next) {
 
       //send user a notify about the follow
       notify([user.email], { reason: properties.appcodes.unfollow })
-
+      
       res.status(200).send(`You will no longer follow ${user.username}`);
     }
-
   });
 
 
@@ -200,7 +191,6 @@ exports.login = (function (req, res) {
   const username = req.body.username;
   const password = req.body.password;
   User.findOne({ $or: [{ username: { $eq: username } }, { email: { $eq: username } }] }, function (err, user) {
-    //  console.log(`User Found: ${user}`)
     if (err || !user) {
       res.sendStatus(403)
     } else {
@@ -221,55 +211,37 @@ exports.login = (function (req, res) {
   })
 })
 
-async function validateUser(user) {
-  const email = user.email;
-  const password = user.password;
-  const username = user.username;
-  let result = {};
-  let err = false;
 
 
-  result.userExist = await User.findOne({ email: email }).then((data) => {
 
-    if (data != null) {
-      result.emailExist = true;
-      err = true;
-    }
-
-  })
-
-  result.usrNameExist = await User.findOne({ username: username }).then((data) => {
-    if (data != null) {
-      result.usernameTaken = true;
-      err = true;
+exports.searchUser = (req, res) => {
+  let searchName = req.params.username;
+  let skip = parseInt(req.params.skip);
+  let limit = parseInt(req.params.limit)
+  searchService.searchUser(searchName, limit, skip, (err, result) => {
+    if (result) {
+      let searchResult = []
+      result.forEach(r => {
+        searchResult.push({ _id: r._id, username: r.username })
+      })
+      res.status(200).send(searchResult)
     }
   })
-  if (/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(email) == false) {
-    result.email = { error: true, message: "you have entered invalid Email" }
-    err = true;
-  }
+}
 
-  if (password.length < 8) {
-    result.password = { error: true, message: "password must be 8 or above" }
-    err = true;
-  }
-
-
-  result.err = err;
-
-  return result;
+exports.loadUserPosts = (req, res) => {
+  let userId = req.query.userId;
+  let limit = parseInt(req.param.limit)
+  let skip = parseInt(req.param.skip)
+  Post.findOne({ user: userId }, (err, doc) => res.send(doc)).limit(limit).skip(skip)
 }
 
 
-
-
-
-
 // delete Account
-exports.deleteAccount = (function (req, res, next) {
+exports.deleteAccount = (function (req, res) {
   user.remove({ _id: req.params.userId })
     .exec()
-    .then(result => {
+    .then(() => {
       res.status(200).json({
         message: "User deleted"
       });
@@ -281,5 +253,77 @@ exports.deleteAccount = (function (req, res, next) {
     });
 })
 
+//follow user
+exports.followUser = (req, res, next) => {
+
+  followOrUnfollow(req, res, 'follow');
+}
+
+//unfollow user
+exports.unfollowUser = (req, res, next) => {
+
+  followOrUnfollow(req, res, 'unfollow');
+}
+
+function followOrUnfollow(req, res, key) {
+  const userId = ObjectId(req.params.userId);
+  const friendId = ObjectId(req.params.friendId);
+  if (key == 'follow') {
+    User.findById(userId).then((user) => {
+      const exist = user.following.map(function (e) {
+        return e.userId;
+      }).indexOf(friendId);
+      if (exist != -1) {
+        res.send({ message: "you have already followd this user" });
+      } else {
+
+        user.following.push({ userId: friendId })
+        user.save().then((data) => {
+          console.log(data);
+          if (!data) {
+            res.send({ message: "unable to follow " })
+            return 0;
+          } else {
+
+            User.findById(friendId).then((user2) => {
+              user2.followers.push({ userId: userId })
+              user2.save().then(() => {
+                if (!data) {
+                  res.send({ message: "unable to follow " })
+                } else {
+                  res.json({ message: "started following  user " })
+                }
+              })
+            })
+
+          }
+        }).catch(err => console.log(err));
+      }
+    })
+
+  }
+  if (key == "unfollow") {
+
+    User.updateOne({ '_id': userId }, { $pull: { following: { userId: friendId } } }, (err, data) => {
+      if (err) {
+        res.send({ message: "unable to follow  " })
+
+      } else if (data.nModified > 0) {
+        User.updateOne({ '_id': friendId }, { $pull: { followers: { 'userId': userId } } }, (err2, data2) => {
+          if (err2) {
+            res.send({ message: "unable to unfollow 2" })
+          } else if (data2.nModified > 0) {
+            res.json({ message: "started unfollowing user" });
+          } else {
+            res.send("you are not following this user 2");
+          }
+        })
+      } else {
+        res.send("you are not following this user");
+      }
+    })
+
+  }
+}
 
 

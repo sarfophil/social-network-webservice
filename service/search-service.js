@@ -2,6 +2,7 @@
  * Search Engine
  */
 const PostModel = require('../model/post').getModel
+const UserModel = require('../model/user').getModel
 
 /** */
 module.exports = {
@@ -19,5 +20,15 @@ module.exports = {
                 onComplete(null,doc)
             }
         }).limit(limit)
+    },
+
+    searchUser: (keyword,limit,skip,callback) => {
+        UserModel.find({$text: {$search: keyword}},(err,doc) => {
+            if(err){
+                callback(err,null)
+            }else{
+                callback(null,doc)
+            }
+        }).limit(limit).skip(skip)
     }
 }

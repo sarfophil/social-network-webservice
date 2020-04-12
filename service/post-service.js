@@ -28,6 +28,7 @@ const postService = {
         
 
         post.createOrUpdatePost().then((data) => {
+          
 
             if (data.isActive === false) {
                 // Account Deactivated
@@ -52,7 +53,7 @@ const postService = {
                     }
 
                     // created
-                    res.sendStatus(201)
+                    res.json({message:"post created"});
 
                 } catch (e) {
                     //
@@ -65,10 +66,13 @@ const postService = {
                 data.post.then(() => { post.save(); })
 
                 // created
-                res.sendStatus(201)
+                res.json({message:"post created"});
+
             }
         }).catch((error) => {   
-            res.status(500).send(error)
+            console.log(error)
+
+            res.status(406).json({ message:"invalid user Id"});
         })
     }),
     search: (req, res) => {
