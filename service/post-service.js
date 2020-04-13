@@ -7,6 +7,7 @@ const properties = require('../config/properties')
 const Utils = require('../util/apputil')
 const Comment = require('../model/comment')
 const userModel = require('../model/user').getModel
+const ObjectId = require('mongodb').ObjectId;
 
 
 
@@ -146,9 +147,11 @@ const postService = {
     ]
         ,function (err,result){
             if(err)
-            console.log(err)
-            else
+            console.log(err + "  error")
+            else{
+            console.log(result + "  result" )
             res.send(result);
+            }
         })
 
     },
@@ -181,8 +184,9 @@ const postService = {
         })
     },
     delete: (req, res, next) => {
-        Post.deleteOne(req.params.postId).then(() => {
-            res.sendStatus(204)
+        console.log(req.params.postId);
+        Post.deleteOne({_id:ObjectId(req.params.postId)}).then(() => {
+            res.send({message:"post deleted"})
         }).catch((err) => { throw new Error(err); })
     },
     /**
@@ -215,7 +219,7 @@ const postService = {
                         imageName=req.body.deleteImage?null:post.imageLink[0] ;
                         console.log("image name",imageName);
                     }
-                    else {
+                    else if(names[0] != null) {
                         imageName = names[0];
                     }
 
