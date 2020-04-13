@@ -1,14 +1,13 @@
 /**
  * Security
  */
-const Utils = require('../util/apputil')
-const jwt = require('../util/jwt')
+const Utils = require('../util/apputil');
+const jwt = require('../util/jwt');
 
 // Add Permitted Routes to the array
 const allowedRoutes = ['/user/login','/user/account','/admin/login']
 function shouldPermit(pathName) {
-    if(/\w+\?\w+=\w+$/.test(pathName)) return true;
-    let flag = Utils.find(allowedRoutes,(route) => route == pathName)
+    let flag = Utils.find(allowedRoutes,(route) => route === pathName)
     return flag == null ? false : true
 }
 const routes = [
@@ -30,6 +29,13 @@ function route(routeArgs) {
         }
     }
 }
+
+
+/**
+ *
+ * @param request
+ * @param callback
+ */
 function authorizationFilter(request,callback) {
     let pathName = Utils.findAbsPath(req.path);
     let checkRoute = Utils.find(routes,(route) => {

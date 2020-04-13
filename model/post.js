@@ -10,6 +10,7 @@ const nodemailer = require("../util/nodemailer");
 const Schema = mongoose.Schema;
 const wsutil = require("../util/ws-events")
 const properties = require("../config/properties")
+const comment = require("./comment")
 
 const postSchema = new Schema({
     user: {
@@ -103,11 +104,20 @@ postSchema.methods.createOrUpdatePost = async function() {
                 }
             })
         }
+<<<<<<< HEAD
     }).catch(err=>console.log(err));
+=======
+    })
+ }
 
-     
-  
-  }
+postSchema.methods.countComments = (postId,cb) => {
+
+    comment.countDocuments({postId: postId},(err,comments) => {
+        cb(comments)
+    })
+}
+>>>>>>> c2a34d2e9d7013e48317728eb339e74c79c717c2
+
 
 
 //filtering unhealthy post
@@ -160,7 +170,6 @@ async function ExceedUNhealthyPost(userId) {
     });
 
 }
-
 
 
 

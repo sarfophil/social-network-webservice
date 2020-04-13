@@ -5,8 +5,13 @@ const fservice = require('../service/filestorage-service');
 const wsutil = require('../util/ws-events')
 const properties = require('../config/properties')
 const Utils = require('../util/apputil')
+<<<<<<< HEAD
 const comment = require('../model/comment')
 const ObjectId = require('mongodb').ObjectId
+=======
+const Comment = require('../model/comment')
+const userModel = require('../model/user').getModel
+>>>>>>> c2a34d2e9d7013e48317728eb339e74c79c717c2
 
 
 
@@ -213,7 +218,7 @@ const postService = {
     },
     delete: (req, res, next) => {
         Post.deleteOne(req.params.postId).then(() => {
-            res.send({ error: false, message: "post deleted successfully" });
+            res.sendStatus(204)
         }).catch((err) => { throw new Error(err); })
     },
     /**
@@ -314,7 +319,7 @@ const postService = {
 
                 post.save()
 
-                res.sendStatus(200)
+                res.sendStatus(204)
             }
         })
 
@@ -326,6 +331,7 @@ const postService = {
         let requestBody = req.body
         let postId = req.params.postId
         let userId = req.params.userId
+<<<<<<< HEAD
         let comment = new Comment({ content: requestBody.content, postId: postId, user: userId })
         let valid = comment.validateSync()
         if (valid) {
@@ -334,13 +340,65 @@ const postService = {
             comment.save()
 
             res.status(202).send()
+=======
+       
+        userModel.findOne({_id: userId},(err,user) => {
+            let comment = new Comment({content: requestBody.content,postId: postId,user: user})
+       
+            let valid = comment.validateSync()
+            if(valid){
+                res.status(400).send('Input validation error')
+            } else {
+                comment.save()
+    
+                res.status(202).send()
+            }
+        })
+       
+    },
+
+    getComments: (req,res) => {
+        try{
+            let skip = parseInt(req.query.skip);
+            let limit = parseInt(req.query.limit);
+            let postId = req.params.postId;
+            
+            Comment.find({postId: postId},function(err,comments) {
+          
+                res.status(200).send(comments)
+
+
+            }).limit(limit).skip(skip).sort({createdDate: -1})
+        }catch(Error){
+            res.status(200).send([])
+>>>>>>> c2a34d2e9d7013e48317728eb339e74c79c717c2
         }
+        
+    },
+
+    countTotalComment: (req,res) => {
+       try{
+           let postId = req.params.postId;
+           Post.findOne({_id: postId},(err,post) => {
+               post.countComments(postId,(count) =>  {
+                   console.log(`${count}`);
+                   res.status(200).send({comments: count})
+               })
+           })
+       } catch (e) {
+           res.status(200).send({comments: 0})
+       }
     },
 
     deleteComment: (req, res) => {
         let commentId = req.params.commentId;
+<<<<<<< HEAD
         commentModel.deleteOne({ _id: commentId }, (err) => console.log(`${err}`))
         res.sendStatus(200)
+=======
+        Comment.deleteOne({_id: commentId},() => console.log(`${commentId}: Removed`));
+        res.sendStatus(204)
+>>>>>>> c2a34d2e9d7013e48317728eb339e74c79c717c2
     }
 
 }
