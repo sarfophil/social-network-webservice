@@ -194,7 +194,6 @@ exports.followUser = async function (req, res) {
 // retrieve all follwers of a user
 exports.getUserFollower = async function (req, res) {
   User.findOne(ObjectId(req.principal.payload._id)).then((user) => {
-    console.log(user);
     user.populate({path:'followers.userId',select: 'username'})
     .execPopulate().then((data) => { res.send(data.followers) })
     .catch((err) => console.log(err));
@@ -340,7 +339,6 @@ function followOrUnfollow(req, res, key) {
 
         user.following.push({ userId: friendId })
         user.save().then((data) => {
-          console.log(data);
           if (!data) {
             res.send({ message: "unable to follow " })
             return 0;
