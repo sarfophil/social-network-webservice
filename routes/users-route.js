@@ -4,9 +4,7 @@ const router = express.Router();
 
 // User Followers Route
 router.get('/:userId/followers',userService.getUserFollower);
-
-
-
+router.get('/all',userService.getAllUsers);
 // Create Account
 router.post('/account',userService.signUp)
 

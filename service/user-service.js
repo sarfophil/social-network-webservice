@@ -107,84 +107,84 @@ exports.getUserFollower = async function (req, res) {
 
 
 
-// Post to Follow  user 
-exports.followUser = async function (req, res, next) {
-  let userId = req.params.userId;
-  let followId = req.params.followerId;
-  var flag = false;
+// // Post to Follow  user  
+// exports.followUser = async function (req, res, next) {
+//   let userId = req.params.userId;
+//   let followId = req.params.followerId;
+//   var flag = false;
 
-  let user = await User.findOne({ _id: userId });
-  if (!user) {
-    res.status(200).send('user not found')
-  }
+//   let user = await User.findOne({ _id: userId });
+//   if (!user) {
+//     res.status(200).send('user not found')
+//   }
 
-  for (let f of user.followers) {
-    if (f == followId) {
-      flag = true;
-      break;
-    }
-  }
-  if (flag == true || userId === followId) {
-    res.status(200).send(`You are already a follower of ${user.username} or you trying to follow yourself`);
-  } else {
-    User.findOne({ _id: followId }, (err, follower) => {
-      if (err||!follower) {
-        res.status(200).send('Unable to follow');
-      } else {
-        user.followers.push(new ObjectId(follower._id));
-        user.save();
+//   for (let f of user.followers) {
+//     if (f == followId) {
+//       flag = true;
+//       break;
+//     }
+//   }
+//   if (flag == true || userId === followId) {
+//     res.status(200).send(`You are already a follower of ${user.username} or you trying to follow yourself`);
+//   } else {
+//     User.findOne({ _id: followId }, (err, follower) => {
+//       if (err||!follower) {
+//         res.status(200).send('Unable to follow');
+//       } else {
+//         user.followers.push(new ObjectId(follower._id));
+//         user.save();
 
-        //send user a notify about the follower
-        notify([user.email], { follower: follower, reason: properties.appcodes.follow })
-        res.status(200).send(`Success! ,You are registered as a follower of ${user.username} `);
-      }
+//         //send user a notify about the follower
+//         notify([user.email], { follower: follower, reason: properties.appcodes.follow })
+//         res.status(200).send(`Success! ,You are registered as a follower of ${user.username} `);
+//       }
 
 
-    });
+//     });
     
-  }
+//   }
 
-}
+// }
 
-// Post to Unfollow  user 
-exports.unfollowUser = function (req, res, next) {
-  let userId = req.params.userId;
-  let followId = req.params.followerId;
-  var flag = false;
+// // Post to Unfollow  user 
+// exports.unfollowUser = function (req, res, next) {
+//   let userId = req.params.userId;
+//   let followId = req.params.followerId;
+//   var flag = false;
 
-  User.findOne({ _id: userId }, (err, user) => {
-    if (!user) {
-      res.status(404).send('User not found')
-    }
-    for (let f of user.followers) {
-      if (f == followId) {
-        flag = true;
-        break;
-      }
-    }
-    if (flag == false || userId === followId) {
-      res.status(403).send(`You have not been following ${user.username}`);
-    } else {
-      User.findOne({ _id: followId }, (err, follower) => {
-        if (err) {
-          res.status(404).send('Unable to follow');
-        }
-        User.findOne({ _id: userId }, (err, user) => {
-          if (err) throw err;
-          user.followers.remove(followId);
-          user.save();
-        });
-      });
+//   User.findOne({ _id: userId }, (err, user) => {
+//     if (!user) {
+//       res.status(404).send('User not found')
+//     }
+//     for (let f of user.followers) {
+//       if (f == followId) {
+//         flag = true;
+//         break;
+//       }
+//     }
+//     if (flag == false || userId === followId) {
+//       res.status(403).send(`You have not been following ${user.username}`);
+//     } else {
+//       User.findOne({ _id: followId }, (err, follower) => {
+//         if (err) {
+//           res.status(404).send('Unable to follow');
+//         }
+//         User.findOne({ _id: userId }, (err, user) => {
+//           if (err) throw err;
+//           user.followers.remove(followId);
+//           user.save();
+//         });
+//       });
 
-      //send user a notify about the follow
-      notify([user.email], { reason: properties.appcodes.unfollow })
+//       //send user a notify about the follow
+//       notify([user.email], { reason: properties.appcodes.unfollow })
       
-      res.status(200).send(`You will no longer follow ${user.username}`);
-    }
-  });
+//       res.status(200).send(`You will no longer follow ${user.username}`);
+//     }
+//   });
 
 
-}
+// }
 
 
 exports.login = (function (req, res) {
@@ -277,9 +277,8 @@ function followOrUnfollow(req, res, key) {
         res.send({ message: "you have already followd this user" });
       } else {
 
-        user.following.push({ userId: friendId })
+        user.following.push({ userId: friendId });
         user.save().then((data) => {
-          console.log(data);
           if (!data) {
             res.send({ message: "unable to follow " })
             return 0;
@@ -324,6 +323,16 @@ function followOrUnfollow(req, res, key) {
     })
 
   }
+}
+
+exports.getAllUsers=(req,res,next)=>{
+  User.find({isActive:true })
+  .then(result=>{
+    res.status(200).send(result);
+  })
+  .catch(err=>{
+    new Error(err);
+  });
 }
 
 
