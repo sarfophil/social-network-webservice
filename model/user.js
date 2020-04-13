@@ -11,6 +11,16 @@ const user = {
         type: String,
         required: true
     },
+    firstname:{
+
+        type:String,
+        require:true
+    },
+    lastname:{
+
+        type:String,
+        require:true
+    },
     email: {
         type: String,
         required: true,
