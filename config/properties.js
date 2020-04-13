@@ -23,7 +23,8 @@ const config = {
         newPost: 113,
         unhealthyPost: 114,
         accountBlocked: 115,
-        postVerified: 116
+        postVerified: 116,
+        profileUpdate: 117
     }
 };
 

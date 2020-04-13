@@ -12,6 +12,8 @@ const searchService = require('../service/search-service')
 const Post = require('../model/post')
 const mongoose = require('mongoose')
 const Utils = require('../util/apputil')
+const Ads = require('../model/advertisement').advertisementModel
+const BlockedAccount = require('../model/blocked-account')
 
 exports.login = (function (req, res) {
   const username = req.body.username;
@@ -46,13 +48,14 @@ exports.updateProfilePic = (function (req, res) {
         user.profilePicture = names[0];
 
         user.save().then(() => {
-          res.sendStatus(200)
+          res.status(200).send(names)
+          notify([user.email],{reason: properties.appcodes.profileUpdate})
         })
 
       })
     }
   } catch (e) {
-    res.sendStatus(500)
+    res.status(200).send([])
   }
 })
 
@@ -382,4 +385,44 @@ function followOrUnfollow(req, res, key) {
   }
 }
 
+exports.loadAds = (req,res) => {
+
+  try{
+    let limit = parseInt(req.query.limit);
+    let skip = parseInt(req.query.skip);
+    let principal = req.principal.payload;
+
+    let query = Ads.find({
+      $and: [
+        {"audienceCriteria.age.min": {$gte: principal.age}},
+        {"audienceCriteria.age.max": {$gte: principal.age}}
+      ]
+    }).skip(skip).limit(limit)
+    query.exec().then((doc) => {
+      res.status(200).send(doc)
+    })
+  }catch (e) {
+    res.sendStatus(200)
+  }
+
+}
+
+exports.submitAccountForReview = function(req,res) {
+  try {
+    let email = req.body.email;
+    BlockedAccount.findOne({"account.email": email}, (err, doc) => {
+      if (err || !doc) {
+        res.sendStatus(404)
+      }else{
+        doc.hasRequestedAReview = true
+        doc.save()
+        //TODO: Admin Notification
+        res.sendStatus(201)
+      }
+    })
+  }catch (e) {
+      res.sendStatus(404)
+  }
+
+}
 

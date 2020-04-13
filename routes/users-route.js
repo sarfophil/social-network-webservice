@@ -34,4 +34,13 @@ router.put('/:userId/unfollow/:friendId', userService.unfollowUser);
 //follow
 router.put('/:userId/follow/:friendId', userService.followUser);
 
+// get Ads
+router.get('/:userId/ads',userService.loadAds)
+
+
+// reporting blocked account for review
+router.post('/report',userService.submitAccountForReview)
+
+
+
 module.exports = router;
