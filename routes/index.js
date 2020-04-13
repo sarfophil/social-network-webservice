@@ -18,7 +18,9 @@ router.get('/download',function(req,res) {
     let imagename = req.query.imagename;
     if(!req.query.imagename){
       User.findOne({_id: userId},(err,doc) => {
-          imagename = doc.profilePicture;
+          if(doc){
+            imagename = doc.profilePicture;
+          }
       })
     }
 

@@ -205,7 +205,7 @@ const postService = {
         
         Post.findOne({_id: postId},(err,post) => {
             if (err) {
-                res.sendStatus(404)
+                res.sendStatus(409)
             } else {
                 let isExist = Utils.find(post.likes,(like) => like.toString() === userId.toString())
                 if(!isExist)
@@ -214,7 +214,7 @@ const postService = {
                 // save to db
                 post.save().then().catch(err=>console.log(err));
 
-                res.sendStatus(200)
+                res.sendStatus(204)
             }
         })
        
@@ -224,10 +224,9 @@ const postService = {
         let postId = req.params.postId;
         let userId = req.params.userId;
 
-        
-        PostModel.findOne({_id: postId},(err,post) => {
+        Post.findOne({_id: postId},(err,post) => {
             if(err){
-                res.sendStatus(404)
+                res.sendStatus(204)
             } else {     
                 let likes = Utils.remove(post.likes,(like) => {
                     return like.toString() === userId
