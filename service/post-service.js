@@ -5,13 +5,8 @@ const fservice = require('../service/filestorage-service');
 const wsutil = require('../util/ws-events')
 const properties = require('../config/properties')
 const Utils = require('../util/apputil')
-<<<<<<< HEAD
-const comment = require('../model/comment')
-const ObjectId = require('mongodb').ObjectId
-=======
 const Comment = require('../model/comment')
 const userModel = require('../model/user').getModel
->>>>>>> c2a34d2e9d7013e48317728eb339e74c79c717c2
 
 
 
@@ -148,12 +143,6 @@ const postService = {
             }
         },{$sort: { 'createdDate': -1 } },{ $skip : page },{ $limit : limit }
 
-            // , {
-            //     $project: {
-            //         imageLink: 0, user: 0, "reactedUsers.createdDate": 0, "reactedUsers.userId": 0, following: 0, audienceFollowers: 0, notifyFollowers: 0, likes: 0, "userDetail.username": 1,
-            //         "userDetail.imageLink": 1
-            //     }
-            //    }
     ]
         ,function (err,result){
             if(err)
@@ -161,31 +150,6 @@ const postService = {
             else
             res.send(result);
         })
-
-        // Post.aggregate([{$l.ookup: {
-        //     from: 'users',
-        //     localField: 'user',
-        //     foreignField: 'following.userId',
-        //     as: 'following'
-        //   }}, {$match: {
-        //   $or:[{"user":req.principal.payload._id},{"audienceFollowers.user": req.principal.payload._id},{"following":{$elemMatch :{"_id":eq.principal.payload._id}}}]
-        //   }}, {}]).exec(err,res=>{
-
-        //   })
-
-        // Post.find({
-        //      $or: [{user: {$eq: req.principal.payload._id}},{"audienceFollowers.user": req.principal.payload._id}],
-        //     isHealthy: true, {user.}
-        // }).limit(limit).skip(page*limit).sort({ 'createdDate': -1 }).populate(
-        //     {path: 'user',
-        // match: { isActive: true },
-        // select: 'username _id profilePicture'})
-        // .populate(
-        //     {path: 'likes.user',
-        // select: 'username _id profilePicture'}).exec(function (err, docs) {
-
-        //         res.send(docs);
-        // });
 
     },
     getNearbyPost: (req, res) => {
@@ -331,16 +295,6 @@ const postService = {
         let requestBody = req.body
         let postId = req.params.postId
         let userId = req.params.userId
-<<<<<<< HEAD
-        let comment = new Comment({ content: requestBody.content, postId: postId, user: userId })
-        let valid = comment.validateSync()
-        if (valid) {
-            res.status(400).send('Input validation error')
-        } else {
-            comment.save()
-
-            res.status(202).send()
-=======
        
         userModel.findOne({_id: userId},(err,user) => {
             let comment = new Comment({content: requestBody.content,postId: postId,user: user})
@@ -371,7 +325,6 @@ const postService = {
             }).limit(limit).skip(skip).sort({createdDate: -1})
         }catch(Error){
             res.status(200).send([])
->>>>>>> c2a34d2e9d7013e48317728eb339e74c79c717c2
         }
         
     },
@@ -392,13 +345,8 @@ const postService = {
 
     deleteComment: (req, res) => {
         let commentId = req.params.commentId;
-<<<<<<< HEAD
-        commentModel.deleteOne({ _id: commentId }, (err) => console.log(`${err}`))
-        res.sendStatus(200)
-=======
         Comment.deleteOne({_id: commentId},() => console.log(`${commentId}: Removed`));
         res.sendStatus(204)
->>>>>>> c2a34d2e9d7013e48317728eb339e74c79c717c2
     }
 
 }

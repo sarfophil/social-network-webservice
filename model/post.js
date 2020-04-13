@@ -75,7 +75,7 @@ postSchema.virtual('totalLikes').get(() => this.likes.length)
 
 //create Post
 postSchema.methods.createOrUpdatePost = async function() {
-   return await User.findById(this.user).then((user)=>{
+   return  User.findById(this.user).then((user)=>{
 
         this.postuname = user.username
 
@@ -104,9 +104,6 @@ postSchema.methods.createOrUpdatePost = async function() {
                 }
             })
         }
-<<<<<<< HEAD
-    }).catch(err=>console.log(err));
-=======
     })
  }
 
@@ -116,7 +113,6 @@ postSchema.methods.countComments = (postId,cb) => {
         cb(comments)
     })
 }
->>>>>>> c2a34d2e9d7013e48317728eb339e74c79c717c2
 
 
 
