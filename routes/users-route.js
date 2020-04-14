@@ -5,6 +5,8 @@ const router = express.Router();
 // User Followers Route
 router.get('/followers',userService.getUserFollower);
 
+// User Followings
+router.get('/following',userService.getUserFollowings)
 
 
 // Create Account
@@ -19,6 +21,8 @@ router.put('/account/profilepic/:userId',userService.updateProfilePic);
 // user service
 router.get('/search',userService.searchUser)
 
+// get a user
+router.get('/find/:userId',userService.findUserById)
 
 // Deactivate Account
 router.delete("/:userId", userService.deleteAccount);
@@ -40,6 +44,8 @@ router.get('/:userId/ads',userService.loadAds)
 
 // reporting blocked account for review
 router.post('/report',userService.submitAccountForReview)
+
+
 
 
 
