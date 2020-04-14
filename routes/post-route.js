@@ -7,6 +7,8 @@ const postService = require('../service/post-service')
 router.get('/search',postService.search)
 //Create post
 router.post('/',postService.create);
+
+
 //Get post by Id
 router.get('/:postId',postService.getById);
 // Get Audience Followers

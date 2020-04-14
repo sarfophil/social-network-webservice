@@ -10,6 +10,7 @@ const properties = require('../config/properties')
 const fservice = require('../service/filestorage-service');
 const searchService = require('../service/search-service')
 const Post = require('../model/post')
+const Postt = require('../model/post').getModel
 const mongoose = require('mongoose')
 const Utils = require('../util/apputil')
 const Ads = require('../model/advertisement').advertisementModel
@@ -194,10 +195,19 @@ exports.followUser = async function (req, res) {
 // retrieve all follwers of a user
 exports.getUserFollower = async function (req, res) {
   User.findOne(ObjectId(req.principal.payload._id)).then((user) => {
-    user.populate({path:'followers.userId',select: 'username'})
+    user.populate({path:'followers.userId',select: ['username','followers','following','profilePicture']})
     .execPopulate().then((data) => { res.send(data.followers) })
     .catch((err) => console.log(err));
   });
+}
+
+// retrieve all followings of a user
+exports.getUserFollowings = async function(req,res) {
+    User.findOne(ObjectId(req.principal.payload._id)).then((user) => {
+      user.populate({path:'following.userId',select: ['username','followers','following','profilePicture']})
+          .execPopulate().then((data) => { res.send(data.following) })
+          .catch((err) => console.log(err));
+    });
 }
 
 // Post to Unfollow  user 
@@ -275,25 +285,63 @@ exports.login = (function (req, res) {
 
 
 exports.searchUser = (req, res) => {
-  let searchName = req.params.username;
+  let searchName = req.query.username;
   let skip = parseInt(req.params.skip);
   let limit = parseInt(req.params.limit)
+
   searchService.searchUser(searchName, limit, skip, (err, result) => {
-    if (result) {
-      let searchResult = []
-      result.forEach(r => {
-        searchResult.push({ _id: r._id, username: r.username })
-      })
-      res.status(200).send(searchResult)
-    }
+    res.status(200).send(result)
   })
 }
 
 exports.loadUserPosts = (req, res) => {
+  console.log("i M in");
   let userId = req.query.userId;
-  let limit = parseInt(req.param.limit)
-  let skip = parseInt(req.param.skip)
-  Post.findOne({ user: userId }, (err, doc) => res.send(doc)).limit(limit).skip(skip)
+  let limit = parseInt(req.param.limit) >0 ? parseInt(req.param.limit) : 10
+  let skip = parseInt(req.param.skip)>0 ? parseInt(req.param.limit) : 0;
+  console.log(limit);
+  skip=skip*limit;
+  Postt.aggregate([{
+    $lookup: {
+        from: 'users',
+        localField: 'user',
+        foreignField: 'following.userId',
+        as: 'following'
+    }
+},
+ {
+    $match: {
+         "user": ObjectId( req.principal.payload._id)   
+    }
+},
+ {
+    $lookup: {
+        from: 'users',
+        localField: 'likes.user',
+        foreignField: '_id',
+        as: 'reactedUsers'
+    }
+},
+{
+    $lookup: {
+        from: 'users',
+        localField: 'user',
+        foreignField: '_id',
+        as: 'userDetail'
+    }
+},{$sort: { 'createdDate': -1 } },{ $skip : skip },{ $limit : limit },
+
+{ $project: { "userDetail": {"likes":0,"location":0,"email":0,"age":0,"createdDate":0,"followers":0,"following":0,"totalVoilation":0,"role":0,"password":0}, "audienceFollowers" : 0, "following":0}}
+]
+,function (err,result){
+    if(err)
+    console.log(err + "  error")
+    else{
+    console.log(result + "  result" )
+    res.send(result);
+    }
+});
+
 }
 
 
@@ -426,3 +474,13 @@ exports.submitAccountForReview = function(req,res) {
 
 }
 
+
+exports.findUserById = (req,res) => {
+  User.findOne({_id: req.params.userId}, (err,doc) => {
+    if(err || !doc){
+      res.sendStatus(404)
+    }else{
+       res.status(200).send(doc)
+    }
+  })
+}

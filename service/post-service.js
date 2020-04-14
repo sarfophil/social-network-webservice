@@ -142,7 +142,8 @@ const postService = {
                 foreignField: '_id',
                 as: 'userDetail'
             }
-        },{$sort: { 'createdDate': -1 } },{ $skip : page },{ $limit : limit }
+        },{$sort: { 'createdDate': -1 } },{ $skip : page },{ $limit : limit },
+        { $project: { "userDetail": {"likes":0,"location":0,"email":0,"age":0,"createdDate":0,"followers":0,"following":0,"totalVoilation":0,"role":0,"password":0}, "audienceFollowers" : 0, "following":0}}
 
     ]
         ,function (err,result){
@@ -186,9 +187,14 @@ const postService = {
     delete: (req, res, next) => {
         console.log(req.params.postId);
         Post.deleteOne({_id:ObjectId(req.params.postId)}).then(() => {
+            console.log(res)
             res.send({message:"post deleted"})
         }).catch((err) => { throw new Error(err); })
     },
+
+    
+      
+      
     /**
      * @deprecated
      */
@@ -201,7 +207,6 @@ const postService = {
                 let postImages = req.files.imageLink instanceof Array ? req.files.imageLink : [req.files.imageLink]
                 try {
 
-                    console.log("imagggggg", postImages)
 
                     let names = fservice.prepareFiles(postImages).renameAs(new String(new Date().getTime())).upload().getNames();
 

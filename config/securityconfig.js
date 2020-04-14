@@ -61,8 +61,6 @@ const security = {
         return this;
     },
     authorize : function(req,res,next) {
-            console.log(req.originalUrl);
-
         if(!shouldPermit(req.originalUrl)){
             let bearer = req.headers.authorization;
             if(bearer){   
