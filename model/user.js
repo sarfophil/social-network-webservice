@@ -75,7 +75,7 @@ const user = {
 }
 
 const userSchema = new mongoose.Schema(user);
-userSchema.index({ username: "text" })
+userSchema.index({ username: "text" });
 const userModel = mongoose.model('user', userSchema);
 
 
