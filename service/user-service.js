@@ -10,6 +10,7 @@ const properties = require('../config/properties')
 const fservice = require('../service/filestorage-service');
 const searchService = require('../service/search-service')
 const Post = require('../model/post')
+const Postt = require('../model/post').getModel
 const mongoose = require('mongoose')
 const Utils = require('../util/apputil')
 const Ads = require('../model/advertisement').advertisementModel
@@ -290,10 +291,53 @@ exports.searchUser = (req, res) => {
 }
 
 exports.loadUserPosts = (req, res) => {
+  console.log("i M in");
   let userId = req.query.userId;
-  let limit = parseInt(req.param.limit)
-  let skip = parseInt(req.param.skip)
-  Post.findOne({ user: userId }, (err, doc) => res.send(doc)).limit(limit).skip(skip)
+  let limit = parseInt(req.param.limit) >0 ? parseInt(req.param.limit) : 10
+  let skip = parseInt(req.param.skip)>0 ? parseInt(req.param.limit) : 0;
+  console.log(limit);
+  skip=skip*limit;
+  Postt.aggregate([{
+    $lookup: {
+        from: 'users',
+        localField: 'user',
+        foreignField: 'following.userId',
+        as: 'following'
+    }
+},
+ {
+    $match: {
+         "user": ObjectId( req.principal.payload._id)   
+    }
+},
+ {
+    $lookup: {
+        from: 'users',
+        localField: 'likes.user',
+        foreignField: '_id',
+        as: 'reactedUsers'
+    }
+},
+{
+    $lookup: {
+        from: 'users',
+        localField: 'user',
+        foreignField: '_id',
+        as: 'userDetail'
+    }
+},{$sort: { 'createdDate': -1 } },{ $skip : skip },{ $limit : limit },
+
+{ $project: { "userDetail": {"likes":0,"location":0,"email":0,"age":0,"createdDate":0,"followers":0,"following":0,"totalVoilation":0,"role":0,"password":0}, "audienceFollowers" : 0, "following":0}}
+]
+,function (err,result){
+    if(err)
+    console.log(err + "  error")
+    else{
+    console.log(result + "  result" )
+    res.send(result);
+    }
+});
+
 }
 
 
