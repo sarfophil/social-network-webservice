@@ -10,7 +10,7 @@ const notification = {
         required: true
     },
     'messageType': {
-        type: String,
+        type: Number,
         required: true
     },
 
@@ -22,6 +22,11 @@ const notification = {
     'topic':{
         type: String,
         required: true
+    },
+
+    'status': {
+        type: Boolean,
+        default: true
     }
 }
 
