@@ -59,7 +59,9 @@ module.exports = {
 
 
     searchUser: (keyword,limit,skip,callback) => {
-        UserModel.find({$text: {$search: keyword}},(err,doc) => {
+        UserModel.find(
+            {$text: {$search: keyword}
+            },(err,doc) => {
             if(err){
                 callback(err,null)
             }else{
