@@ -7,56 +7,62 @@ const properties = require('../config/properties')
 const Utils = require('../util/apputil')
 const Comment = require('../model/comment')
 const userModel = require('../model/user').getModel
+const ObjectId = require('mongodb').ObjectId;
 
 
 
 const postService = {
-    
-    create: (function (req, res, next) {
-      
+
+    create:  (  function  (req, res, next) {
 
         let post = new Post({
             "user": req.principal.payload._id,
             "content": req.body.content,
             "audienceCriteria": {
-                age: req.body.ageGroupTarget? JSON.parse(req.body.ageGroupTarget):null
+                age: req.body.ageGroupTarget ? JSON.parse(req.body.ageGroupTarget) : null
             },
             "audienceLocation": {
-                coordinates: req.body.coordinates? JSON.parse(req.body.coordinates):[0,0]
+                coordinates: req.body.coordinates ? JSON.parse(req.body.coordinates) : [0, 0]
             },
-            "audienceFollowers": req.body.targetFollowers? JSON.parse(req.body.targetFollowers): null,
+            "audienceFollowers": req.body.targetFollowers ? JSON.parse(req.body.targetFollowers) : null,
             "notifyFollowers": req.body.notifyFollowers
         });
 
-        
+
 
         post.createOrUpdatePost().then((data) => {
-          
+
+            
 
             if (data.isActive === false) {
                 // Account Deactivated
                 res.status(403); res.send({ error: true, message: "your account has been deactivated" });
-           
+
             } else if (data.ExceedUNhealthyPost === true) {
                 // unhealthy post
                 res.send({ error: true, message: "you have exceded number of unhelthy post your account has been deactivated; you will rescive email shortly " });
-           
+
             } else if (req.files != null) {
 
                 let postImages = req.files.imageLink instanceof Array ? req.files.imageLink : [req.files.imageLink]
 
                 try {
                     // upload images
-                    post.imageLink = fservice.prepareFiles(postImages).renameAs(post._id.toString()).upload().getNames(); 
+                    let imageLink = fservice.prepareFiles(postImages).renameAs(post._id.toString()).upload().getNames();
 
+                    if(imageLink){
+                        data.post2.imageLink=imageLink;
+                        data.post2.save().then((data)=>{
+                        }).catch((error)=>console.log(error));
+                    }
                     // send Websocket Notification followers
-                    if(post.notifyFollowers){
+                    if (post.notifyFollowers) {
                         let targetUsers = post.audienceFollowers;
                         publishNotification(targetUsers)
                     }
 
                     // created
-                    res.json({message:"post created"});
+                    res.send({ message: "post created" });
 
                 } catch (e) {
                     //
@@ -66,16 +72,16 @@ const postService = {
 
             } else {
 
-                data.post.then(() => { post.save(); })
-
+               
+               if(data.error==false)
+               res.json({ message: "post created" });
                 // created
-                res.json({message:"post created"});
 
             }
-        }).catch((error) => {   
+        }).catch((error) => {
             console.log(error)
 
-            res.status(406).json({ message:"invalid user Id"});
+            res.status(406).json({ message: "invalid user Id" });
         })
     }),
     search: (req, res) => {
@@ -102,43 +108,74 @@ const postService = {
         })
     },
     getAll: (req, res, next) => {
-        const page = new Number(req.query.page);
-        const limit = new Number(req.query.limit);
-        Post.find({
-             $or: [{user: {$eq: req.principal.payload._id}},{"audienceFollowers.user": req.principal.payload._id}],
-            isHealthy: true
-        }).limit(limit).skip(page*limit).sort({ 'createdDate': -1 }).populate(
-            {path: 'user',
-        match: { isActive: true },
-        select: 'username _id profilePicture'})
-        .populate(
-            {path: 'likes.user',
-        select: 'username _id profilePicture'}).exec(function (err, docs) {
-            
-                res.send(docs);
-        });
+        let page =  parseInt(req.query.page);
+        const limit = parseInt(req.query.limit);
+
+        page=limit*page;
+        console.log(req.principal.payload._id+" " +   "  id");
+
+        Post.aggregate([{
+            $lookup: {
+                from: 'users',
+                localField: 'user',
+                foreignField: 'following.userId',
+                as: 'following'
+            }
+        },
+         {
+            $match: {
+                $or: [{ "user": ObjectId( req.principal.payload._id) }, { "following": { $elemMatch: { "_id": ObjectId(req.principal.payload._id) } } }]
+            }
+        },
+         {
+            $lookup: {
+                from: 'users',
+                localField: 'likes.user',
+                foreignField: '_id',
+                as: 'reactedUsers'
+            }
+        },
+        {
+            $lookup: {
+                from: 'users',
+                localField: 'user',
+                foreignField: '_id',
+                as: 'userDetail'
+            }
+        },{$sort: { 'createdDate': -1 } },{ $skip : page },{ $limit : limit },
+        { $project: { "userDetail": {"likes":0,"location":0,"email":0,"age":0,"createdDate":0,"followers":0,"following":0,"totalVoilation":0,"role":0,"password":0}, "audienceFollowers" : 0, "following":0}}
+
+    ]
+        ,function (err,result){
+            if(err)
+            console.log(err + "  error")
+            else{
+            console.log(result + "  result" )
+            res.send(result);
+            }
+        })
 
     },
-    getNearbyPost: (req,res) => {
+    getNearbyPost: (req, res) => {
         const page = new Number(req.query.page);
         const limit = new Number(req.query.limit);
         const userId = req.query.user;
-        
+
         Post.find({
-            user: {$not: {$eq: userId}},
-            "audienceFollowers.user": {$not: {$eq: userId}},   
-            audienceLocation:{
-                    $near: {
-                        $geometry: {type: "Point",coordinates: cord},
-                        $minDistance: properties.geoDistance.minDistance,
-                        $maxDistance: properties.geoDistance.maxDistance
-                    }
-                },
+            user: { $not: { $eq: userId } },
+            "audienceFollowers.user": { $not: { $eq: userId } },
+            audienceLocation: {
+                $near: {
+                    $geometry: { type: "Point", coordinates: cord },
+                    $minDistance: properties.geoDistance.minDistance,
+                    $maxDistance: properties.geoDistance.maxDistance
+                }
+            },
             isHealthy: true
-        }).sort({createdDate: -1}).skip(page).limit(limit)
-        .exec((err,posts) => {
-            res.send(posts)
-        })
+        }).sort({ createdDate: -1 }).skip(page).limit(limit)
+            .exec((err, posts) => {
+                res.send(posts)
+            })
     },
     getlikes: (req, res, next) => {
         const id = req.params.postId;
@@ -148,34 +185,47 @@ const postService = {
         })
     },
     delete: (req, res, next) => {
-        Post.deleteOne(req.params.postId).then(() => {
-            res.sendStatus(204)
+        console.log(req.params.postId);
+        Post.deleteOne({_id:ObjectId(req.params.postId)}).then(() => {
+            console.log(res)
+            res.send({message:"post deleted"})
         }).catch((err) => { throw new Error(err); })
     },
+
+    
+      
+      
     /**
      * @deprecated
      */
     update: (req, res, next) => {
-
+        console.log(req.body);
         Post.findById(req.params.postId).then((post) => {
             let flag = false;
             let imageName = null;
             if (req.files != null) {
-                let postImages = req.files.imageLink instanceof Array ? req.files.images : [req.files.images]
+                let postImages = req.files.imageLink instanceof Array ? req.files.imageLink : [req.files.imageLink]
                 try {
 
 
                     let names = fservice.prepareFiles(postImages).renameAs(new String(new Date().getTime())).upload().getNames();
 
-                    if (post.imageLink[0] != null && names[0] != null) {
+                    if (post.imageLink != null && names[0] != null) {
 
-                        ipath = 'public/uploads/' + post.imageLink[0];
+                        // ipath = 'public/uploads/' + post.imageLink[0];
                         imageName = names[0];
                         // fileSystem.unlinkSync(path.join(ipath), (err) => {
                         //     if (err) {
                         //         console.log(err);
                         //     }
                         // });
+                    }
+                    else if(names[0] == null && post.imageLink!=null){
+                        imageName=req.body.deleteImage?null:post.imageLink[0] ;
+                        console.log("image name",imageName);
+                    }
+                    else if(names[0] != null) {
+                        imageName = names[0];
                     }
 
                 } catch (e) {
@@ -186,53 +236,58 @@ const postService = {
             post.imageLink = imageName;
             post.content = req.body.content;
             post.updatedDate = Date.now(),
-                post.content = req.body.content;
-            post.audienceCriteria = JSON.parse(req.body.audienceCriteria);
-            post.audienceLocation = JSON.parse(new String(req.body.audienceLocation).trim());
-            post.audienceFollowers = JSON.parse(req.body.audienceFollowers);
+            post.content = req.body.content;
+            post.audienceCriteria = req.body.ageGroupTarget ? JSON.parse(req.body.ageGroupTarget) : post.audienceCriteria
+            
+            post.audienceLocation =req.body.coordinates ? JSON.parse(req.body.coordinates) : post.audienceLocation
+
+            post.audienceFollowers = req.body.targetFollowers ? JSON.parse(req.body.targetFollowers) : null
             post.notifyFollowers = req.body.notifyFollowers;
-            post.likes = JSON.parse(req.body.likes);
-            post.createOrUpdatePost().then(() => {
+            post.likes = post.likes;
+        
+            post.createOrUpdatePost().then((data) => {
+                console.log(data);
                 res.send({ error: false })
             }).catch((err) => { throw new Error(err) });
 
         })
     },
 
-    like: (req,res) => {
+    like: (req, res) => {
         let postId = req.params.postId;
         let userId = req.params.userId;
-        
-        Post.findOne({_id: postId},(err,post) => {
+
+        Post.findOne({ _id: postId }, (err, post) => {
             if (err) {
-                res.sendStatus(404)
+                res.sendStatus(409)
             } else {
-                let isExist = Utils.find(post.likes,(like) => like.toString() === userId.toString())
-                if(!isExist)
+                let isExist = Utils.find(post.likes, (like) => like.toString() === userId.toString())
+                if (!isExist)
                     post.likes.push(userId)
 
                 // save to db
-                post.save().then().catch(err=>console.log(err));
+                post.save().then().catch(err => console.log(err));
 
-                res.sendStatus(200)
+                res.sendStatus(204)
             }
         })
-       
+
     },
 
-    unlike: (req,res) => {
+    unlike: (req, res) => {
         let postId = req.params.postId;
         let userId = req.params.userId;
 
-        
-        PostModel.findOne({_id: postId},(err,post) => {
+
+        Post.findOne({_id: postId},(err,post) => {
             if(err){
-                res.sendStatus(404)
+                res.sendStatus(204)
             } else {     
                 let likes = Utils.remove(post.likes,(like) => {
+
                     return like.toString() === userId
                 })
- 
+
                 // assign new likes to the object
                 post.likes = likes
 
@@ -243,10 +298,10 @@ const postService = {
         })
 
 
-        
+
     },
 
-    commentPost: (req,res) => {
+    commentPost: (req, res) => {
         let requestBody = req.body
         let postId = req.params.postId
         let userId = req.params.userId
@@ -298,7 +353,7 @@ const postService = {
        }
     },
 
-    deleteComment: (req,res) => {
+    deleteComment: (req, res) => {
         let commentId = req.params.commentId;
         Comment.deleteOne({_id: commentId},() => console.log(`${commentId}: Removed`));
         res.sendStatus(204)
@@ -310,16 +365,20 @@ const postService = {
  * Send Notification to target users
  * @param {User} targetUsers 
  */
-function publishNotification(targetUsers){
-    if(!targetUsers){ 
+function publishNotification(targetUsers) {
+    if (!targetUsers) {
         let targetEmails = [];
-        for(let user of targetUsers){
+        for (let user of targetUsers) {
             targetEmails.push(user.email)
         }
-        wsutil(targetEmails,{reason: properties.appcodes.newPost})
+        wsutil(targetEmails, { reason: properties.appcodes.newPost })
     }
 }
 
+async function followedBy(user1, user2) {
+    const user = await User.findById(user1);
+    return user.following.indexOf(a.userId == user2);
+}
 
 
 module.exports = postService;

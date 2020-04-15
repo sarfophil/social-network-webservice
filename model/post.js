@@ -20,6 +20,8 @@ const postSchema = new Schema({
     },
     content: {
         type: String,
+        required:true
+        
     },
     imageLink: [{ type: String }],
     createdDate: {
@@ -73,7 +75,7 @@ postSchema.virtual('totalLikes').get(() => this.likes.length)
 
 //create Post
 postSchema.methods.createOrUpdatePost = async function() {
-   return User.findById(this.user).then((user)=>{
+   return  User.findById(this.user).then((user)=>{
 
         this.postuname = user.username
 
@@ -97,7 +99,8 @@ postSchema.methods.createOrUpdatePost = async function() {
                     return  {post:null,eror:false};
                 } else {
                     this.isHealthy = 'yes';
-                    return  {post:this.save(),error:false};
+                    return  {post:this.save(),post2:this,error:false};
+
                 }
             })
         }

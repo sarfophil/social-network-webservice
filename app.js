@@ -11,6 +11,7 @@ var indexRouter = require('./routes/index');
 var userRouter = require('./routes/users-route');
 var postRouter = require('./routes/post-route');
 var adminRouter = require('./routes/admin-route');
+var tokenRouter = require('./routes/token')
 
 // File Upload Plugin
 const fileUpload = require('express-fileupload')
@@ -41,6 +42,7 @@ app.use('/', indexRouter);
 app.use('/user',security.configure().authorize,userRouter);
 app.use('/posts',security.configure().authorize,postRouter);
 app.use('/admin',security.configure().authorize,adminRouter);
+app.use('/token',security.configure().authorize,tokenRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

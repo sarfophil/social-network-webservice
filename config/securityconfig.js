@@ -5,7 +5,7 @@ const Utils = require('../util/apputil');
 const jwt = require('../util/jwt');
 
 // Add Permitted Routes to the array
-const allowedRoutes = ['/user/login','/user/account','/admin/login']
+const allowedRoutes = ['/user/login','/user/account','/admin/login','/user/report'];
 function shouldPermit(pathName) {
     let flag = Utils.find(allowedRoutes,(route) => route === pathName)
     return flag == null ? false : true
@@ -61,8 +61,6 @@ const security = {
         return this;
     },
     authorize : function(req,res,next) {
-            console.log(req.originalUrl);
-
         if(!shouldPermit(req.originalUrl)){
             let bearer = req.headers.authorization;
             if(bearer){   

@@ -2,6 +2,7 @@ const Admin = require('../model/admin').adminModel
 const bcrypt = require('../util/bcrypt')
 const jwt = require('../util/jwt')
 
+const AdvertModel = require('../model/advertisement').advertisementModel
 const fservice = require('../service/filestorage-service')
 
 exports.login = (function(req,res,next){
