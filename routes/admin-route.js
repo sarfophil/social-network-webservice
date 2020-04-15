@@ -21,6 +21,8 @@ const jwt = require('../util/jwt')
 
 /** Admin Login */
 router.post('/login',function(req,res) {
+    console.log(req.body);
+
     let username = req.body.username
     let password = req.body.password
     AdminModel.findOne({email: username},function(err,user){
