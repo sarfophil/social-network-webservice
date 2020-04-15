@@ -8,12 +8,14 @@ const Utils = require('../util/apputil')
 const Comment = require('../model/comment')
 const userModel = require('../model/user').getModel
 const ObjectId = require('mongodb').ObjectId;
-
+const BlacklistedPostModel = require('../model/blacklistedPost');
 
 
 const postService = {
 
-    create:  (  function  (req, res, next) {
+
+
+    create: (function (req, res, next) {
 
         let post = new Post({
             "user": req.principal.payload._id,
@@ -32,7 +34,7 @@ const postService = {
 
         post.createOrUpdatePost().then((data) => {
 
-            
+
 
             if (data.isActive === false) {
                 // Account Deactivated
@@ -40,6 +42,7 @@ const postService = {
 
             } else if (data.ExceedUNhealthyPost === true) {
                 // unhealthy post
+                console.log("unhealthy post");
                 res.send({ error: true, message: "you have exceded number of unhelthy post your account has been deactivated; you will rescive email shortly " });
 
             } else if (req.files != null) {
@@ -50,10 +53,10 @@ const postService = {
                     // upload images
                     let imageLink = fservice.prepareFiles(postImages).renameAs(post._id.toString()).upload().getNames();
 
-                    if(imageLink){
-                        data.post2.imageLink=imageLink;
-                        data.post2.save().then((data)=>{
-                        }).catch((error)=>console.log(error));
+                    if (imageLink) {
+                        data.post2.imageLink = imageLink;
+                        data.post2.save().then((data) => {
+                        }).catch((error) => console.log(error));
                     }
                     // send Websocket Notification followers
                     if (post.notifyFollowers) {
@@ -72,9 +75,9 @@ const postService = {
 
             } else {
 
-               
-               if(data.error==false)
-               res.json({ message: "post created" });
+
+                if (data.error == false)
+                    res.json({ message: "post created" });
                 // created
 
             }
@@ -108,11 +111,11 @@ const postService = {
         })
     },
     getAll: (req, res, next) => {
-        let page =  parseInt(req.query.page);
+        const id = req.params.userId;
+        let page = parseInt(req.query.page);
         const limit = parseInt(req.query.limit);
 
-        page=limit*page;
-        console.log(req.principal.payload._id+" " +   "  id");
+        page = limit * page;
 
         Post.aggregate([{
             $lookup: {
@@ -122,12 +125,13 @@ const postService = {
                 as: 'following'
             }
         },
-         {
+        {
             $match: {
-                $or: [{ "user": ObjectId( req.principal.payload._id) }, { "following": { $elemMatch: { "_id": ObjectId(req.principal.payload._id) } } }]
+                
+                $or: [{ "user": ObjectId(req.principal.payload._id) },{$and:[{ishealthy:true}, { "following": { $elemMatch: { "_id": ObjectId(req.principal.payload._id) } } }]}]
             }
         },
-         {
+        {
             $lookup: {
                 from: 'users',
                 localField: 'likes.user',
@@ -142,18 +146,18 @@ const postService = {
                 foreignField: '_id',
                 as: 'userDetail'
             }
-        },{$sort: { 'createdDate': -1 } },{ $skip : page },{ $limit : limit },
-        { $project: { "userDetail": {"likes":0,"location":0,"email":0,"age":0,"createdDate":0,"followers":0,"following":0,"totalVoilation":0,"role":0,"password":0}, "audienceFollowers" : 0, "following":0}}
+        }, { $sort: { 'createdDate': -1 } }, { $skip: page }, { $limit: limit },
+        { $project: { "userDetail": { "likes": 0, "location": 0, "email": 0, "age": 0, "createdDate": 0, "followers": 0, "following": 0, "totalVoilation": 0, "role": 0, "password": 0 }, "audienceFollowers": 0, "following": 0 } }
 
-    ]
-        ,function (err,result){
-            if(err)
-            console.log(err + "  error")
-            else{
-            console.log(result + "  result" )
-            res.send(result);
-            }
-        })
+        ]
+            , function (err, result) {
+                if (err)
+                    console.log(err + "  error")
+                else {
+                    console.log(result + "  result")
+                    res.send(result);
+                }
+            })
 
     },
     getNearbyPost: (req, res) => {
@@ -186,15 +190,15 @@ const postService = {
     },
     delete: (req, res, next) => {
         console.log(req.params.postId);
-        Post.deleteOne({_id:ObjectId(req.params.postId)}).then(() => {
+        Post.deleteOne({ _id: ObjectId(req.params.postId) }).then(() => {
             console.log(res)
-            res.send({message:"post deleted"})
+            res.send({ message: "post deleted" })
         }).catch((err) => { throw new Error(err); })
     },
 
-    
-      
-      
+
+
+
     /**
      * @deprecated
      */
@@ -220,11 +224,11 @@ const postService = {
                         //     }
                         // });
                     }
-                    else if(names[0] == null && post.imageLink!=null){
-                        imageName=req.body.deleteImage?null:post.imageLink[0] ;
-                        console.log("image name",imageName);
+                    else if (names[0] == null && post.imageLink != null) {
+                        imageName = req.body.deleteImage ? null : post.imageLink[0];
+                        console.log("image name", imageName);
                     }
-                    else if(names[0] != null) {
+                    else if (names[0] != null) {
                         imageName = names[0];
                     }
 
@@ -236,15 +240,15 @@ const postService = {
             post.imageLink = imageName;
             post.content = req.body.content;
             post.updatedDate = Date.now(),
-            post.content = req.body.content;
+                post.content = req.body.content;
             post.audienceCriteria = req.body.ageGroupTarget ? JSON.parse(req.body.ageGroupTarget) : post.audienceCriteria
-            
-            post.audienceLocation =req.body.coordinates ? JSON.parse(req.body.coordinates) : post.audienceLocation
+
+            post.audienceLocation = req.body.coordinates ? JSON.parse(req.body.coordinates) : post.audienceLocation
 
             post.audienceFollowers = req.body.targetFollowers ? JSON.parse(req.body.targetFollowers) : null
             post.notifyFollowers = req.body.notifyFollowers;
             post.likes = post.likes;
-        
+
             post.createOrUpdatePost().then((data) => {
                 console.log(data);
                 res.send({ error: false })
@@ -279,11 +283,11 @@ const postService = {
         let userId = req.params.userId;
 
 
-        Post.findOne({_id: postId},(err,post) => {
-            if(err){
+        Post.findOne({ _id: postId }, (err, post) => {
+            if (err) {
                 res.sendStatus(204)
-            } else {     
-                let likes = Utils.remove(post.likes,(like) => {
+            } else {
+                let likes = Utils.remove(post.likes, (like) => {
 
                     return like.toString() === userId
                 })
@@ -305,58 +309,109 @@ const postService = {
         let requestBody = req.body
         let postId = req.params.postId
         let userId = req.params.userId
-       
-        userModel.findOne({_id: userId},(err,user) => {
-            let comment = new Comment({content: requestBody.content,postId: postId,user: user})
-       
+
+        userModel.findOne({ _id: userId }, (err, user) => {
+            let comment = new Comment({ content: requestBody.content, postId: postId, user: user })
+
             let valid = comment.validateSync()
-            if(valid){
+            if (valid) {
                 res.status(400).send('Input validation error')
             } else {
                 comment.save()
-    
+
                 res.status(202).send()
             }
         })
-       
+
     },
 
-    getComments: (req,res) => {
-        try{
+    getComments: (req, res) => {
+        try {
             let skip = parseInt(req.query.skip);
             let limit = parseInt(req.query.limit);
             let postId = req.params.postId;
-            
-            Comment.find({postId: postId},function(err,comments) {
-          
+
+            Comment.find({ postId: postId }, function (err, comments) {
+
                 res.status(200).send(comments)
 
 
-            }).limit(limit).skip(skip).sort({createdDate: -1})
-        }catch(Error){
+            }).limit(limit).skip(skip).sort({ createdDate: -1 })
+        } catch (Error) {
             res.status(200).send([])
         }
-        
+
     },
 
-    countTotalComment: (req,res) => {
-       try{
-           let postId = req.params.postId;
-           Post.findOne({_id: postId},(err,post) => {
-               post.countComments(postId,(count) =>  {
-                   console.log(`${count}`);
-                   res.status(200).send({comments: count})
-               })
-           })
-       } catch (e) {
-           res.status(200).send({comments: 0})
-       }
+    countTotalComment: (req, res) => {
+        try {
+            let postId = req.params.postId;
+            Post.findOne({ _id: postId }, (err, post) => {
+                post.countComments(postId, (count) => {
+                    console.log(`${count}`);
+                    res.status(200).send({ comments: count })
+                })
+            })
+        } catch (e) {
+            res.status(200).send({ comments: 0 })
+        }
     },
 
     deleteComment: (req, res) => {
         let commentId = req.params.commentId;
-        Comment.deleteOne({_id: commentId},() => console.log(`${commentId}: Removed`));
+        Comment.deleteOne({ _id: commentId }, () => console.log(`${commentId}: Removed`));
         res.sendStatus(204)
+    },
+//get all unhealthy post
+    getUnhealthyPosts:(req,res)=>{
+        const id = req.params.userId;
+        let page = parseInt(req.query.page);
+        const limit = parseInt(req.query.limit);
+
+        page = limit * page;
+        console.log("unhealthy");
+
+        BlacklistedPostModel.aggregate([{
+            $lookup: {
+                from: 'users',
+                localField: 'user',
+                foreignField: 'following.userId',
+                as: 'following'
+            }
+        },
+        {
+            $match: {
+             "post.user": ObjectId(id) 
+            }
+        },
+        {
+            $lookup: {
+                from: 'users',
+                localField: 'likes.user',
+                foreignField: '_id',
+                as: 'reactedUsers'
+            }
+        },
+        {
+            $lookup: {
+                from: 'users',
+                localField: 'post.user',
+                foreignField: '_id',
+                as: 'post.userDetail'
+            }
+        }, { $sort: { 'createdDate': -1 } }, { $skip: page }, { $limit: limit },
+        { $project: { "post.userDetail": { "likes": 0, "location": 0, "email": 0, "age": 0, "createdDate": 0, "followers": 0, "following": 0, "totalVoilation": 0, "role": 0, "password": 0 }, "audienceFollowers": 0, "following": 0 } }
+
+        ]
+            , function (err, result) {
+                if (err)
+                    console.log(err + "  error")
+                else {
+                    console.log(result + "  result")
+                    res.send(result);
+                }
+            })
+
     }
 
 }

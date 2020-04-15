@@ -57,6 +57,7 @@ router.post('/ads',adminService.createAd)
 router.get('/posts', function (req,res) {
     let requestBody = req.body
     postModel.find((err,doc) => res.status(200).send(doc))
+
     .limit(parseInt(requestBody.limit)).skip(parseInt(requestBody.skip))
 })
 
@@ -74,19 +75,57 @@ router.get('/posts/:postId',function (req,res) {
  * 
  *  */
 router.get('/blacklist/posts/reviews',function (req,res) {
-    BlacklistedPostModel.find((err,doc) => res.status(200).send(doc))
-    .limit(parseInt(req.query.limit)).skip(parseInt(req.query.skip))
+    let page = parseInt(req.query.page);
+    const limit = parseInt(req.query.limit);
+
+    console.log("limit",limit);
+    BlacklistedPostModel.aggregate([{
+        $lookup: {
+            from: 'users',
+            localField: 'user',
+            foreignField: 'following.userId',
+            as: 'following'
+        }
+    },
+    {
+        $lookup: {
+            from: 'users',
+            localField: 'likes.user',
+            foreignField: '_id',
+            as: 'reactedUsers'
+        }
+    },
+    {
+        $lookup: {
+            from: 'users',
+            localField: 'post.user',
+            foreignField: '_id',
+            as: 'post.userDetail'
+        }
+    }, { $sort: { 'createdDate': -1 } }, { $skip: page }, { $limit: limit },
+    { $project: { "post.userDetail": { "likes": 0, "location": 0, "email": 0, "age": 0, "createdDate": 0, "followers": 0, "following": 0, "totalVoilation": 0, "role": 0, "password": 0 }, "audienceFollowers": 0, "following": 0 } }
+
+    ]
+        , function (err, result) {
+            if (err)
+                console.log(err + "  error")
+            else {
+                console.log(result + "  result")
+                res.send(result);
+            }
+        })
 })
 
 
 // accept
-router.put('/blacklist/posts/reviews/:reviewId',function(req,res){
-    blacklistedPostService.removePostFromBlackListToPost(req.params.reviewId)
+router.put('/blacklist/posts/reviews/:reviewId',async function(req,res){
+  await  blacklistedPostService.removePostFromBlackListToPost(req.params.reviewId)
     .then(result => {
-        res.status(200).send('Post Added')
+        res.send({error:false,message:"success"})
     })
     .catch(err => {
-        res.status(500).send('An Error Occured')
+        console.log(err)
+        res.send(err)
     })
 })
 
@@ -182,7 +221,7 @@ router.put('/accounts/reviews/:reviewId', function(req,res) {
                         .text(`Dear ${user.username}, Your Account has been activated successfully`)
                         .sendEmail(onSucess => console.log(`Email Sent ! ${onSucess}`))
                 
-                res.sendStatus(200)
+                res.send({error:false,message:'account has been activated'});
             }
 
         })
