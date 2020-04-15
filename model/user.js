@@ -11,6 +11,16 @@ const user = {
         type: String,
         required: true
     },
+    firstname:{
+
+        type:String,
+        require:true
+    },
+    lastname:{
+
+        type:String,
+        require:true
+    },
     email: {
         type: String,
         required: true,
@@ -65,7 +75,7 @@ const user = {
 }
 
 const userSchema = new mongoose.Schema(user);
-userSchema.index({ username: "text" })
+userSchema.index({ username: "text" });
 const userModel = mongoose.model('user', userSchema);
 
 

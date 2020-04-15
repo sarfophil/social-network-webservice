@@ -1,24 +1,19 @@
 /**
  * Security
  */
-const Utils = require('../util/apputil')
-const jwt = require('../util/jwt')
-
-
+const Utils = require('../util/apputil');
+const jwt = require('../util/jwt');
 
 // Add Permitted Routes to the array
-const allowedRoutes = ['/user/login','/user/account','/admin/login']
-
+const allowedRoutes = ['/user/login','/user/account','/admin/login','/user/report'];
 function shouldPermit(pathName) {
-    let flag = Utils.find(allowedRoutes,(route) => route == pathName || /\w+\?\w+=\w+\.\w+$/.test('/download?imagename=image.png'))
+    let flag = Utils.find(allowedRoutes,(route) => route === pathName)
     return flag == null ? false : true
 }
-
 const routes = [
     {route:'admin', role:[]},
     {route:'users', role:[]},
 ]
-
 /**
  * Method maps roles to routes
  * @param {String} routeArgs 
@@ -35,25 +30,27 @@ function route(routeArgs) {
     }
 }
 
+
+/**
+ *
+ * @param request
+ * @param callback
+ */
 function authorizationFilter(request,callback) {
     let pathName = Utils.findAbsPath(req.path);
     let checkRoute = Utils.find(routes,(route) => {
         return route.route == pathName
     })
-
     if(!checkRoute){       
          //check user role
          let checkRoles = Utils.find(checkRoute.role,(role) => request.principal.role == role)
-
          if(checkRoles){       
             callback(null,true)
          }else{
              callback('Not permitted',false)
          }
     }
-
 }
-
 
 const security = {
     configure: function() {
@@ -74,7 +71,6 @@ const security = {
                         res.status(403).send('Token Expired')                 
                     }else{   
                         //console.log(`Path: ${Utils.findAbsPath(req.path)}`)
-
                         // Adds user info to the request after verifying
                         req.principal = decoded
                         next()
@@ -83,11 +79,10 @@ const security = {
             }else{   
                 res.sendStatus(403)
             }
-        }else{     
+        }else{
             next()
         }
     }
 }
-
 
 module.exports = security

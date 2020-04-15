@@ -7,6 +7,8 @@ const postService = require('../service/post-service')
 router.get('/search',postService.search)
 //Create post
 router.post('/',postService.create);
+
+
 //Get post by Id
 router.get('/:postId',postService.getById);
 // Get Audience Followers
@@ -27,8 +29,13 @@ router.put('/:postId/user/:userId/likes',postService.like)
 router.delete('/:postId/user/:userId/likes',postService.unlike)
 // comment comment
 router.post('/:postId/user/:userId/comments',postService.commentPost)
+// load comment
+router.get('/:postId/comments',postService.getComments);
+// count total comment
+router.get('/:postId/comments/count',postService.countTotalComment)
+
 // remove comment 
-router.delete('/:postId/user/:userId/comments',postService.deleteComment)
+router.delete('/:postId/comments/:commentId',postService.deleteComment)
 
 
 module.exports = router;

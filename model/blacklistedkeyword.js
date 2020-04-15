@@ -1,6 +1,6 @@
 /**
  * Object will contain blacklisted words from admin
- * which will be compared to user posts for voilations
+ * which will be compared to user posts for violations
  */
 const mongoose = require('mongoose');
 

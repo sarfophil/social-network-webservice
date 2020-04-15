@@ -13,11 +13,14 @@ var indexRouter = require('./routes/index');
 var userRouter = require('./routes/users-route');
 var postRouter = require('./routes/post-route');
 var adminRouter = require('./routes/admin-route');
+var tokenRouter = require('./routes/token')
 
 // File Upload Plugin
 const fileUpload = require('express-fileupload')
 
 var app = express();
+
+
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -32,7 +35,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(cors({
   origin: '*'
 }))
-app.use(security.configure().authorize)
+
 
 // file upload option
 app.use(fileUpload({
@@ -41,9 +44,10 @@ app.use(fileUpload({
 
 
 app.use('/', indexRouter);
-app.use('/user', userRouter);
-app.use('/posts',postRouter);
-app.use('/admin',adminRouter)
+app.use('/user',security.configure().authorize,userRouter);
+app.use('/posts',security.configure().authorize,postRouter);
+app.use('/admin',security.configure().authorize,adminRouter);
+app.use('/token',security.configure().authorize,tokenRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
@@ -58,8 +62,8 @@ app.use(function(err, req, res, next) {
   
   // render the error page
   res.status(err.status || 500);
-  res.send(err.message);
-
+  res.render('error');
+  //console.log(err.stack)
 });
 
 module.exports = app;

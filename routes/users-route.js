@@ -3,9 +3,12 @@ const userService=require('../service/user-service');
 const router = express.Router();
 
 // User Followers Route
-router.get('/:userId/followers',userService.getUserFollower);
-router.get('/all',userService.getAllUsers);
-router.get('/:id',userService.getUser);
+router.get('/followers',userService.getUserFollower);
+
+// User Followings
+router.get('/following',userService.getUserFollowings)
+
+
 // Create Account
 router.post('/account',userService.signUp)
 
@@ -18,6 +21,8 @@ router.put('/account/profilepic/:userId',userService.updateProfilePic);
 // user service
 router.get('/search',userService.searchUser)
 
+// get a user
+router.get('/find/:userId',userService.findUserById)
 
 // Deactivate Account
 router.delete("/:userId", userService.deleteAccount);
@@ -32,5 +37,16 @@ router.put('/:userId/unfollow/:friendId', userService.unfollowUser);
 
 //follow
 router.put('/:userId/follow/:friendId', userService.followUser);
+
+// get Ads
+router.get('/:userId/ads',userService.loadAds)
+
+
+// reporting blocked account for review
+router.post('/report',userService.submitAccountForReview)
+
+
+
+
 
 module.exports = router;

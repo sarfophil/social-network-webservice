@@ -10,6 +10,7 @@ const nodemailer = require("../util/nodemailer");
 const Schema = mongoose.Schema;
 const wsutil = require("../util/ws-events")
 const properties = require("../config/properties")
+const comment = require("./comment")
 
 const postSchema = new Schema({
     user: {
@@ -19,6 +20,8 @@ const postSchema = new Schema({
     },
     content: {
         type: String,
+        required:true
+        
     },
     imageLink: [{ type: String }],
     createdDate: {
@@ -72,7 +75,7 @@ postSchema.virtual('totalLikes').get(() => this.likes.length)
 
 //create Post
 postSchema.methods.createOrUpdatePost = async function() {
-   return User.findById(this.user).then((user)=>{
+   return  User.findById(this.user).then((user)=>{
 
         this.postuname = user.username
 
@@ -96,15 +99,21 @@ postSchema.methods.createOrUpdatePost = async function() {
                     return  {post:null,eror:false};
                 } else {
                     this.isHealthy = 'yes';
-                    return  {post:this.save(),error:false};
+                    return  {post:this.save(),post2:this,error:false};
+
                 }
             })
         }
     })
+ }
 
-     
-  
-  }
+postSchema.methods.countComments = (postId,cb) => {
+
+    comment.countDocuments({postId: postId},(err,comments) => {
+        cb(comments)
+    })
+}
+
 
 
 //filtering unhealthy post
@@ -157,7 +166,6 @@ async function ExceedUNhealthyPost(userId) {
     });
 
 }
-
 
 
 
