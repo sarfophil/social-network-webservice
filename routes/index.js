@@ -4,9 +4,10 @@ var router = express.Router();
 const fs = require('fs')
 const imageDirectory = require('../public/upload-path')
 const User = require('../model/user').getModel
-
+const ws = require('../util/ws-events');
 /* GET home page. */
 router.get('/', function(req, res, next) {
+  ws(['jayp@gmail.com'],{});
   res.render('index', { title: 'Express' });
 });
 

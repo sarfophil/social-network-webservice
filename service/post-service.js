@@ -86,8 +86,9 @@ const postService = {
     }),
     search: (req, res) => {
         let username = req.query.query;
-        let limit = parseInt(req.query.limit)
-        searchService.search(username, limit, (err, doc) => {
+        let limit = parseInt(req.query.limit);
+        let skip = parseInt(req.query.skip)
+        searchService.search(username, limit, skip,(err, doc) => {
             res.status(200).send(doc)
         })
     },
@@ -142,7 +143,17 @@ const postService = {
                 foreignField: '_id',
                 as: 'userDetail'
             }
-        },{$sort: { 'createdDate': -1 } },{ $skip : page },{ $limit : limit },
+        },
+        {
+            $lookup: {
+                from: 'comments',
+                localField: '_id',
+                foreignField: 'postId',
+                as: 'comments'
+            }
+        }
+
+        ,{$sort: { 'createdDate': -1 } },{ $skip : page },{ $limit : limit },
         { $project: { "userDetail": {"likes":0,"location":0,"email":0,"age":0,"createdDate":0,"followers":0,"following":0,"totalVoilation":0,"role":0,"password":0}, "audienceFollowers" : 0, "following":0}}
 
     ]
@@ -185,9 +196,7 @@ const postService = {
         })
     },
     delete: (req, res, next) => {
-        console.log(req.params.postId);
         Post.deleteOne({_id:ObjectId(req.params.postId)}).then(() => {
-            console.log(res)
             res.send({message:"post deleted"})
         }).catch((err) => { throw new Error(err); })
     },
@@ -281,11 +290,11 @@ const postService = {
 
         Post.findOne({_id: postId},(err,post) => {
             if(err){
+
                 res.sendStatus(204)
             } else {     
                 let likes = Utils.remove(post.likes,(like) => {
-
-                    return like.toString() === userId
+                    return like._id.toString() === userId
                 })
 
                 // assign new likes to the object
