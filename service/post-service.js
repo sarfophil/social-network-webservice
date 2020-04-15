@@ -86,8 +86,9 @@ const postService = {
     }),
     search: (req, res) => {
         let username = req.query.query;
-        let limit = parseInt(req.query.limit)
-        searchService.search(username, limit, (err, doc) => {
+        let limit = parseInt(req.query.limit);
+        let skip = parseInt(req.query.skip)
+        searchService.search(username, limit, skip,(err, doc) => {
             res.status(200).send(doc)
         })
     },
