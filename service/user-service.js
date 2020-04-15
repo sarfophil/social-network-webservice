@@ -295,12 +295,10 @@ exports.searchUser = (req, res) => {
 }
 
 exports.loadUserPosts = (req, res) => {
-  console.log("i M in");
   let userId = req.query.userId;
-  let limit = parseInt(req.param.limit) >0 ? parseInt(req.param.limit) : 10
-  let skip = parseInt(req.param.skip)>0 ? parseInt(req.param.limit) : 0;
-  console.log(limit);
-  skip=skip*limit;
+  let limit = parseInt(req.param.limit);
+  let skip = parseInt(req.param.skip);
+
   Postt.aggregate([{
     $lookup: {
         from: 'users',
@@ -440,14 +438,21 @@ exports.loadAds = (req,res) => {
     let skip = parseInt(req.query.skip);
     let principal = req.principal.payload;
 
-    let query = Ads.find({
-      $and: [
-        {"audienceCriteria.age.min": {$gte: principal.age}},
-        {"audienceCriteria.age.max": {$gte: principal.age}}
-      ]
-    }).skip(skip).limit(limit)
+
+    let query = Ads.aggregate([
+        {
+          $match: {
+            $and: [
+              {"audienceCriteria.age.min": {$gte: principal.age}},
+              {"audienceCriteria.age.max": {$gte: principal.age}}
+            ]
+          }
+        }
+    ]).limit(limit).skip(skip).sort({createdDate: -1})
     query.exec().then((doc) => {
       res.status(200).send(doc)
+    }).catch(err=> {
+      console.log(err)
     })
   }catch (e) {
     res.sendStatus(200)
