@@ -11,6 +11,7 @@ const Schema = mongoose.Schema;
 const wsutil = require("../util/ws-events")
 const properties = require("../config/properties")
 const comment = require("./comment")
+const ws = require("../config/websocket")
 
 const postSchema = new Schema({
     user: {
@@ -79,7 +80,7 @@ postSchema.methods.createOrUpdatePost = async function() {
 
         this.postuname = user.username
 
-        if(user.isActive == false){
+        if(user.isActive === false){
         return {"isActive":false};
         
         }
@@ -95,6 +96,7 @@ postSchema.methods.createOrUpdatePost = async function() {
                     
                     const blacklistPost =  new BlacklistedPost({post: this})
                     blacklistPost.save()
+
 
                     return  {post:null,eror:false};
                 } else {
@@ -150,13 +152,20 @@ async function ExceedUNhealthyPost(userId) {
                     .sendEmail((result) => console.log(`Email Sent: ${result}`))
                 
                 // websocket notification
-                wsutil([user.email],{reason: properties.appcodes.accountBlocked})
+              //  wsutil([user.email],{reason: properties.appcodes.accountBlocked,content: 'Your Account has been blocked for too many unhealthy posts'})
+                ws().then(socket => {
+                    socket.emit(req.principal.payload.email,{reason: properties.appcodes.accountBlocked,content: 'Your Account has been blocked for too many unhealthy posts'})
+                })
             }
 
 
             user.save();
 
-            wsutil([user.email],{reason: properties.appcodes.unhealthyPost})
+
+         //   wsutil([user.email],{reason: properties.appcodes.unhealthyPost, content: 'Our system has identified not allowed keywords in your content. Your admin will verify you post.'})
+            ws().then(socket => {
+                socket.emit(req.principal.payload.email,{reason: properties.appcodes.unhealthyPost, content: 'Our system has identified not allowed keywords in your content. Your admin will verify you post.'})
+            })
 
             return user.totalVoilation >= 20 ? true : false;
         }).catch((err) => {

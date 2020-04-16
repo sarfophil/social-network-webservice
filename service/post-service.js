@@ -8,6 +8,7 @@ const Utils = require('../util/apputil')
 const Comment = require('../model/comment')
 const userModel = require('../model/user').getModel
 const ObjectId = require('mongodb').ObjectId;
+const ws = require('../config/websocket')
 
 
 const postService = {
@@ -30,8 +31,6 @@ const postService = {
 
 
         post.createOrUpdatePost().then((data) => {
-
-            
 
             if (data.isActive === false) {
                 // Account Deactivated
@@ -60,6 +59,12 @@ const postService = {
                         publishNotification(targetUsers)
                     }
 
+                   // wsutil([req.principal.payload.email],{reason: properties.appcodes.postCreated,content: 'Post Created Successfully'})
+                    ws().then(socket => {
+                        console.log(`Emitted Socket`)
+                        socket.emit(req.principal.payload.email,{reason: properties.appcodes.postCreated,content: 'Post Created Successfully'})
+                    }).catch(err => console.log(`${err}`))
+
                     // created
                     res.send({ message: "post created" });
 
@@ -70,16 +75,17 @@ const postService = {
                 }
 
             } else {
-
-               
-               if(data.error==false)
+              //  wsutil([req.principal.payload.email],{reason: properties.appcodes.postCreated,content: 'Post Created Successfully'})
+                ws().then(socket => {
+                    socket.emit(req.principal.payload.email,{reason: properties.appcodes.postCreated,content: 'Post Created Successfully'})
+                })
+               if(data.error===false)
                res.json({ message: "post created" });
                 // created
 
             }
         }).catch((error) => {
             console.log(error)
-
             res.status(406).json({ message: "invalid user Id" });
         })
     }),
@@ -280,7 +286,7 @@ const postService = {
 
                 //notification
                 userModel.findOne({_id: post.user},(err,user) => {
-                    wsutil([user.email],{reason: properties.appcodes.likePost,content: '${req.principal.payload.username} liked your post'})
+                    wsutil([user.email],{reason: properties.appcodes.likePost,content: `${req.principal.payload.username} liked your post`})
                 })
             }
         })

@@ -13,13 +13,16 @@ let conn = () =>{
         socket.on('user_status',function (data) {
             console.log(`Socket notification: ${data}`)
             User.findOne({_id: data.userId},(err,user) => {
+                console.log(`Status : ${data.status}`)
                 if(data.status === 1){
                     // logout
+                    console.log(`${user.username} logged out`)
                     user.isOnline = false;
                     user.save()
                   //  user.update({_id: data.userId},{isOnline: false})
                 }else {
                     // login
+                    console.log(`${user.username} logged in`)
                     user.isOnline = true
                     user.save()
                     //user.update({_id: user._id},{$set:{'isOnline': true}})

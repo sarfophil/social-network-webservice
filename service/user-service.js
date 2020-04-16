@@ -18,27 +18,6 @@ const BlockedAccount = require('../model/blocked-account')
 const Notification = require('../model/notification').notificationModel
 const ws = require('../config/websocket')
 
-exports.login = (function (req, res) {
-  const username = req.body.username;
-  const password = req.body.password;
-
-  User.findOne({ $or: [{ username: { $eq: username } }, { email: { $eq: username } }] }, function (err, user) {
-    if (err) res.statusCode(403)
-    let comparePassword = bcrypt.compareSync(password, user.password)
-    if (comparePassword) {
-      // sign token 
-      jwt.sign(user, (err, token) => {
-        if (err) {
-          res.status(500).send('Unable to sign token')
-        } else {
-          res.status(200).send({ access_token: token })
-        }
-      })
-    } else {
-      res.sendStatus(403)
-    }
-  })
-})
 
 //update profile 
 exports.updateProfilePic = (function (req, res) {
@@ -272,6 +251,8 @@ exports.login = (function (req, res) {
           if (err) {
             res.status(500).send('Unable to sign token')
           } else {
+            user.isOnline = true;
+            user.save()
             res.status(200).send({ access_token: token, user: user })
           }
         })
@@ -499,10 +480,7 @@ exports.getNotification = (req,res) => {
   let limit = parseInt(req.query.limit)
   let skip = parseInt(req.query.skip)
   let topic = req.principal.payload.email;
-  Notification.find({topic: topic,status: false},(err,doc) =>{
-    if(doc) {
-      sendNotification(doc);
-    }
+  Notification.find({topic: topic},(err,doc) =>{
     res.status(200).send(doc)
   } ).sort({createdDate: -1}).limit(limit).skip(skip)
 }
