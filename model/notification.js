@@ -27,6 +27,10 @@ const notification = {
     'status': {
         type: Boolean,
         default: true
+    },
+    'hasViewed': {
+        type: Boolean,
+        default: false
     }
 }
 

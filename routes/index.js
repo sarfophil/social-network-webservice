@@ -7,7 +7,7 @@ const User = require('../model/user').getModel
 const ws = require('../util/ws-events');
 /* GET home page. */
 router.get('/', function(req, res, next) {
-  ws(['jayp@gmail.com'],{});
+  ws(['jayp@gmail.com'],{reason: 243,content: 'Lorem Testing'});
   res.render('index', { title: 'Express' });
 });
 

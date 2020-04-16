@@ -24,7 +24,8 @@ const config = {
         unhealthyPost: 114,
         accountBlocked: 115,
         postVerified: 116,
-        profileUpdate: 117
+        profileUpdate: 117,
+        likePost: 118
     }
 };
 
