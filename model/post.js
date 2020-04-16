@@ -108,7 +108,6 @@ postSchema.methods.createOrUpdatePost = async function() {
  }
 
 postSchema.methods.countComments = (postId,cb) => {
-
     comment.countDocuments({postId: postId},(err,comments) => {
         cb(comments)
     })
