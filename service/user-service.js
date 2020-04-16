@@ -15,6 +15,8 @@ const mongoose = require('mongoose')
 const Utils = require('../util/apputil')
 const Ads = require('../model/advertisement').advertisementModel
 const BlockedAccount = require('../model/blocked-account')
+const Notification = require('../model/notification').notificationModel
+const ws = require('../config/websocket')
 
 exports.login = (function (req, res) {
   const username = req.body.username;
@@ -50,7 +52,7 @@ exports.updateProfilePic = (function (req, res) {
 
         user.save().then(() => {
           res.status(200).send(names)
-          notify([user.email], { reason: properties.appcodes.profileUpdate })
+          notify([user.email],{reason: properties.appcodes.profileUpdate,content: 'Profile Update'})
         })
 
       })
@@ -59,6 +61,55 @@ exports.updateProfilePic = (function (req, res) {
     res.status(200).send([])
   }
 })
+
+
+// Post to Follow  user 
+exports.followUser = async function (req, res) {
+  let userId = req.params.userId;
+  let followId = req.params.followerId;
+  var flag = false;
+
+  let user = await User.findOne({ _id: userId });
+  if (!user) {
+    res.status(404).send('user not found')
+  }
+
+  for (let f of user.followers) {
+    if (f == followId) {
+      flag = true;
+      break;
+    }
+  }
+  if (flag == true) {
+    res.status(200).send('following is not success');
+  }
+  else {
+    if (userId === followId) {
+      res.status(403).send('Operation denied')
+    }
+
+    User.findOne({ _id: followId }, (err, follower) => {
+      if (err) {
+        res.status(404).send('Unable to follow');
+      }
+
+      User.findOne({ _id: userId }, (err, user) => {
+        if (err) throw err;
+        user.followers.push(new ObjectId(followId));
+        user.save();
+
+        //send user a notify about the follow
+        notify([user.email], { follower: follower, reason: properties.appcodes.follow, content: `${follower.username} followed you`})
+
+      });
+    });
+
+
+
+    res.status(200).send('following  successfully');
+  }
+
+}
 
 
 // Account creation
@@ -93,6 +144,54 @@ exports.signUp = function (req, res) {
   })
 }
 
+// Post to Follow  user 
+exports.followUser = async function (req, res) {
+  let userId = req.params.userId;
+  let followId = req.params.followerId;
+  var flag = false;
+
+  let user = await User.findOne({ _id: userId });
+  if (!user) {
+    res.status(404).send('user not found')
+  }
+
+  for (let f of user.followers) {
+    if (f == followId) {
+      flag = true;
+      break;
+    }
+  }
+  if (flag == true) {
+    res.status(200).send('following is not success');
+  }
+  else {
+    if (userId === followId) {
+      res.status(403).send('Operation denied')
+    }
+
+    User.findOne({ _id: followId }, (err, follower) => {
+      if (err) {
+        res.status(404).send('Unable to follow');
+      }
+
+      User.findOne({ _id: userId }, (err, user) => {
+        if (err) throw err;
+        user.followers.push(new ObjectId(followId));
+        user.save();
+
+        //send user a notify about the follow
+        notify([user.email], { follower: follower, reason: properties.appcodes.follow , content: `${follower.username} followed you` })
+
+      });
+    });
+
+
+
+    res.status(200).send('following  successfully');
+  }
+
+}
+
 
 
 // retrieve all follwers of a user
@@ -105,11 +204,55 @@ exports.getUserFollower = async function (req, res) {
 }
 
 // retrieve all followings of a user
-exports.getUserFollowings = async function (req, res) {
-  User.findOne(ObjectId(req.principal.payload._id)).then((user) => {
-    user.populate({ path: 'following.userId', select: ['username', 'followers', 'following', 'profilePicture'] })
-      .execPopulate().then((data) => { res.send(data.following) })
-      .catch((err) => console.log(err));
+exports.getUserFollowings = async function(req,res) {
+    User.findOne(ObjectId(req.principal.payload._id)).then((user) => {
+      user.populate({path:'following.userId',select: ['username','followers','following','profilePicture']})
+          .execPopulate().then((data) => { res.send(data.following) })
+          .catch((err) => console.log(err));
+    });
+}
+
+// Post to Unfollow  user 
+exports.unfollowUser = function (req, res) {
+  let userId = req.params.userId;
+  let followId = req.params.followerId;
+  var flag = true;
+
+  User.findOne({ _id: userId }, (err, user) => {
+    if (!user) {
+      res.status(404).send('User not found')
+    }
+    for (let f of user.followers) {
+      if (f == followId) {
+        flag = false;
+        break;
+      }
+    }
+    if (flag == true) {
+      res.status(200).send('unfollowing is not success');
+    }
+    else {
+      if (userId === followId) {
+        return Promise.reject('Operation denied');
+      }
+
+      User.findOne({ _id: followId }, (err) => {
+        if (err) {
+          res.status(404).send('Unable to follow');
+        }
+
+        User.findOne({ _id: userId }, (err, user) => {
+          if (err) throw err;
+          user.followers.remove(followId);
+          user.save();
+        });
+      });
+
+      //send user a notify about the follow
+      notify([user.email], { reason: properties.appcodes.unfollow, content: 'A friend unfollowed you'})
+
+      res.status(200).send('unfollowing  successfully');
+    }
   });
 }
 
@@ -350,3 +493,44 @@ exports.findUserById = (req, res) => {
     }
   });
 }
+
+/**
+ * Get Notifications
+ */
+exports.getNotification = (req,res) => {
+  let limit = parseInt(req.query.limit)
+  let skip = parseInt(req.query.skip)
+  let topic = req.principal.payload.email;
+  Notification.find({topic: topic,status: false},(err,doc) =>{
+    if(doc) {
+      sendNotification(doc);
+    }
+    res.status(200).send(doc)
+  } ).sort({createdDate: -1}).limit(limit).skip(skip)
+}
+
+/**
+ * Check Notification
+ * @param req
+ * @param res
+ */
+exports.checkNotification = (req,res) => {
+  let topic = req.principal.payload.email;
+  Notification.find({topic: topic,status: false},(err,doc) =>{
+    if(doc) {
+      console.log(doc)
+      sendNotification(doc);
+    }
+    res.sendStatus(200)
+  } )
+}
+
+  function sendNotification(docs){
+       ws().then(socket => {
+          for (let notification of docs){
+            socket.emit(notification.topic,{reason: notification.messageType,content: notification.message})
+            notification.status = true;
+            notification.save()
+          }
+       }).catch((err) => console.log(`${err}`))
+  }

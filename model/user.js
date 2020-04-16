@@ -71,6 +71,9 @@ const user = {
     role: {
         type: String,
         default: 'USER_ROLE'
+    },
+    isOnline: {
+        type: Boolean
     }
 }
 
@@ -92,6 +95,8 @@ userSchema.virtual('addFollower')
             throw new Error('Operation forbidden')
         }
     })
+
+
 
 
 const userDomain = {

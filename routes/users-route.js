@@ -46,7 +46,12 @@ router.get('/:userId/ads',userService.loadAds)
 router.post('/report',userService.submitAccountForReview)
 
 
+// notification
+router.get('/notification',userService.getNotification)
 
+
+// check notification
+router.get('/check_notification',userService.checkNotification)
 
 
 module.exports = router;

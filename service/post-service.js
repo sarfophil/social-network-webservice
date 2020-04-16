@@ -10,7 +10,6 @@ const userModel = require('../model/user').getModel
 const ObjectId = require('mongodb').ObjectId;
 
 
-
 const postService = {
 
     create:  (  function  (req, res, next) {
@@ -278,6 +277,11 @@ const postService = {
                 post.save().then().catch(err => console.log(err));
 
                 res.sendStatus(204)
+
+                //notification
+                userModel.findOne({_id: post.user},(err,user) => {
+                    wsutil([user.email],{reason: properties.appcodes.likePost,content: '${req.principal.payload.username} liked your post'})
+                })
             }
         })
 
@@ -380,7 +384,7 @@ function publishNotification(targetUsers) {
         for (let user of targetUsers) {
             targetEmails.push(user.email)
         }
-        wsutil(targetEmails, { reason: properties.appcodes.newPost })
+        wsutil(targetEmails, { reason: properties.appcodes.newPost , content: 'A new Post Available'})
     }
 }
 
