@@ -12,9 +12,9 @@ module.exports = {
      * @param {number} limit
      * @param {function} onComplete
      */
-    search: (keyword,limit,onComplete) => {
+    search: (keyword,limit,skip,onComplete) => {
        
-        PostModel.aggregate([{ $match: { $text: { $search: 'john' } }             
+        PostModel.aggregate([{ $match: { $text: { $search: keyword } }
         },
 
         {
@@ -41,8 +41,9 @@ module.exports = {
                 foreignField: '_id',
                 as: 'userDetail'
             }
-        },{$sort: { 'createdDate': -1 } },{ $limit : limit },
+        },{$sort: { 'createdDate': -1 } },{ $limit : limit },{$skip : skip},
         { $project: { "userDetail": {"likes":0,"location":0,"email":0,"age":0,"createdDate":0,"followers":0,"following":0,"totalVoilation":0,"role":0,"password":0}, "audienceFollowers" : 0, "following":0}}
+
 
     ]
         ,(err,doc) => {

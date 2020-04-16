@@ -143,7 +143,7 @@ async function ExceedUNhealthyPost(user, post) {
             user.totalVoilation = number;
             console.log("isActive", user.totalVoilation)
 
-            if (number >= 20) {
+            if (number >= 2) {
                 user.isActive = false;
 
                 new BlockedAccount({ account: user }).save().then((data) => {
@@ -164,7 +164,7 @@ async function ExceedUNhealthyPost(user, post) {
 
             wsutil([user.email], { reason: properties.appcodes.unhealthyPost })
 
-            return user.totalVoilation >= 20 ? true : false;
+            return user.totalVoilation >= 2 ? true : false;
 
         });
 
