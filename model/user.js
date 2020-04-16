@@ -1,5 +1,5 @@
 /**
- * user domain 
+ * user model
  * 
  */
 const mongoose = require('mongoose');
