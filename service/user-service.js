@@ -15,6 +15,8 @@ const mongoose = require('mongoose')
 const Utils = require('../util/apputil')
 const Ads = require('../model/advertisement').advertisementModel
 const BlockedAccount = require('../model/blocked-account')
+const Notification = require('../model/notification').notificationModel
+const ws = require('../config/websocket')
 
 exports.login = (function (req, res) {
   const username = req.body.username;
@@ -50,7 +52,7 @@ exports.updateProfilePic = (function (req, res) {
 
         user.save().then(() => {
           res.status(200).send(names)
-          notify([user.email],{reason: properties.appcodes.profileUpdate})
+          notify([user.email],{reason: properties.appcodes.profileUpdate,content: 'Profile Update'})
         })
 
       })
@@ -97,7 +99,7 @@ exports.followUser = async function (req, res) {
         user.save();
 
         //send user a notify about the follow
-        notify([user.email], { follower: follower, reason: properties.appcodes.follow })
+        notify([user.email], { follower: follower, reason: properties.appcodes.follow, content: `${follower.username} followed you`})
 
       });
     });
@@ -178,7 +180,7 @@ exports.followUser = async function (req, res) {
         user.save();
 
         //send user a notify about the follow
-        notify([user.email], { follower: follower, reason: properties.appcodes.follow })
+        notify([user.email], { follower: follower, reason: properties.appcodes.follow , content: `${follower.username} followed you` })
 
       });
     });
@@ -247,7 +249,7 @@ exports.unfollowUser = function (req, res) {
       });
 
       //send user a notify about the follow
-      notify([user.email], { reason: properties.appcodes.unfollow })
+      notify([user.email], { reason: properties.appcodes.unfollow, content: 'A friend unfollowed you'})
 
       res.status(200).send('unfollowing  successfully');
     }
@@ -489,3 +491,44 @@ exports.findUserById = (req,res) => {
     }
   })
 }
+
+/**
+ * Get Notifications
+ */
+exports.getNotification = (req,res) => {
+  let limit = parseInt(req.query.limit)
+  let skip = parseInt(req.query.skip)
+  let topic = req.principal.payload.email;
+  Notification.find({topic: topic,status: false},(err,doc) =>{
+    if(doc) {
+      sendNotification(doc);
+    }
+    res.status(200).send(doc)
+  } ).sort({createdDate: -1}).limit(limit).skip(skip)
+}
+
+/**
+ * Check Notification
+ * @param req
+ * @param res
+ */
+exports.checkNotification = (req,res) => {
+  let topic = req.principal.payload.email;
+  Notification.find({topic: topic,status: false},(err,doc) =>{
+    if(doc) {
+      console.log(doc)
+      sendNotification(doc);
+    }
+    res.sendStatus(200)
+  } )
+}
+
+  function sendNotification(docs){
+       ws().then(socket => {
+          for (let notification of docs){
+            socket.emit(notification.topic,{reason: notification.messageType,content: notification.message})
+            notification.status = true;
+            notification.save()
+          }
+       }).catch((err) => console.log(`${err}`))
+  }
