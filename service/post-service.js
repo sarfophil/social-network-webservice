@@ -214,7 +214,7 @@ const postService = {
         console.log(req.body);
         Post.findById(req.params.postId).then((post) => {
             let flag = false;
-            let imageName = null;
+            let imageName = [];
             if (req.files != null) {
                 let postImages = req.files.imageLink instanceof Array ? req.files.imageLink : [req.files.imageLink]
                 try {

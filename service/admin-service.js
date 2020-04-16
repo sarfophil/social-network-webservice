@@ -26,6 +26,7 @@ exports.login = (function(req,res,next){
 })
 
 exports.createAd = function(req,res) {
+  console.log(req.body)
     let ad = {
         title: req.body.title,
         content: req.body.content,
@@ -48,17 +49,17 @@ exports.createAd = function(req,res) {
         .then(value => {
             uploadImage(banners,adModel._id,(err,images) => {
                 if(err){
-                    res.status(500).send(err)
+                    res.send(err)
                 }else{
                     adModel.banner = images
                     adModel.save()
-                    res.status(201).send('Posted')
+                    res.send({meaage:'Posted'})
                 }
             })
         })
         .catch(err => {
             console.log(err.stack)
-            res.status(500).send('Input Validation Error')
+            res.send('Input Validation Error')
         })
  
 }
