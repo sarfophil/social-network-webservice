@@ -7,8 +7,6 @@ var logger = require('morgan');
 
 var security = require('./config/securityconfig')
 var cors = require('cors')
-
-
 var indexRouter = require('./routes/index');
 var userRouter = require('./routes/users-route');
 var postRouter = require('./routes/post-route');
@@ -19,9 +17,6 @@ var tokenRouter = require('./routes/token')
 const fileUpload = require('express-fileupload')
 
 var app = express();
-
-
-
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
