@@ -89,7 +89,7 @@ const blacklistedPostServiceImpl = {
         user.save()
 
         // send notification
-        wsutil([user.email],{reason: properties.appcodes.postVerified})
+        wsutil([user.email],{reason: properties.appcodes.postVerified, content: ""})
 
         // updated
         return Promise.resolve(user)
