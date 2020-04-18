@@ -21,6 +21,7 @@ const jwt = require('../util/jwt')
 
 /** Admin Login */
 router.post('/login',function(req,res) {
+
     let username = req.body.username
     let password = req.body.password
     AdminModel.findOne({email: username},function(err,user){
@@ -63,10 +64,16 @@ router.get('/ads/:adId',function (req,res) {
  */
 router.post('/ads',adminService.createAd)
 
+/** 
+ * Delete ad
+ */
+router.post('/ads/:id',adminService.deleteAd)
+
 /** Retrieve All Posts */
 router.get('/posts', function (req,res) {
     let requestBody = req.body
     postModel.find((err,doc) => res.status(200).send(doc))
+
     .limit(parseInt(requestBody.limit)).skip(parseInt(requestBody.skip))
 })
 
@@ -84,19 +91,55 @@ router.get('/posts/:postId',function (req,res) {
  * 
  *  */
 router.get('/blacklist/posts/reviews',function (req,res) {
-    BlacklistedPostModel.find((err,doc) => res.status(200).send(doc))
-    .limit(parseInt(req.query.limit)).skip(parseInt(req.query.skip))
+    let page = parseInt(req.query.skip);
+    const limit = parseInt(req.query.limit);
+    page*=limit;
+
+    BlacklistedPostModel.aggregate([{
+        $lookup: {
+            from: 'users',
+            localField: 'user',
+            foreignField: 'following.userId',
+            as: 'following'
+        }
+    },
+    {
+        $lookup: {
+            from: 'users',
+            localField: 'likes.user',
+            foreignField: '_id',
+            as: 'reactedUsers'
+        }
+    },
+    {
+        $lookup: {
+            from: 'users',
+            localField: 'post.user',
+            foreignField: '_id',
+            as: 'post.userDetail'
+        }
+    }, { $sort: { 'createdDate': -1 } }, { $skip: page }, { $limit: limit },
+    { $project: { "post.userDetail": { "likes": 0, "location": 0, "email": 0, "age": 0, "createdDate": 0, "followers": 0, "following": 0, "role": 0, "password": 0 }, "audienceFollowers": 0, "following": 0 } }
+
+    ]
+        , function (err, result) {
+            if (err)
+                console.log(err + "  error")
+            else {
+                res.send(result);
+            }
+        })
 })
 
 
 // accept
-router.put('/blacklist/posts/reviews/:reviewId',function(req,res){
-    blacklistedPostService.removePostFromBlackListToPost(req.params.reviewId)
+router.put('/blacklist/posts/reviews/:reviewId',async function(req,res){
+  await  blacklistedPostService.removePostFromBlackListToPost(req.params.reviewId)
     .then(result => {
-        res.status(200).send('Post Added')
+        res.send({error:false,message:"success"})
     })
     .catch(err => {
-        res.status(500).send('An Error Occured')
+        res.send(err)
     })
 })
 
@@ -162,7 +205,9 @@ router.delete('/blacklistwords/:blacklistId',function (req,res) {
  */
 router.get('/accounts/reviews',function(req,res) {
     let limit = parseInt(req.params.limit)
-    BlockedAccount.find({hasRequestedAReview: true},(err,doc) => res.status(200).send(doc)).limit(limit)
+    let skip = parseInt(req.params.skip)
+    skip=limit*skip;
+    BlockedAccount.find({hasRequestedAReview: true},(err,doc) => res.status(200).send(doc)).skip(skip).limit(limit)
 })
 
 
@@ -192,13 +237,30 @@ router.put('/accounts/reviews/:reviewId', function(req,res) {
                         .text(`Dear ${user.username}, Your Account has been activated successfully`)
                         .sendEmail(onSucess => console.log(`Email Sent ! ${onSucess}`))
                 
-                res.sendStatus(200)
+                res.send({error:false,message:'account has been activated'});
             }
 
         })
 
     })
 })
+/**
+ * Reject  Account Activation Request
+ */
+router.put('/accounts/reviews/:reject', function(req,res) {
+    let reviewId = req.params.reviewId;
+    BlockedAccount.findByIdAndUpdate({"_id":reviewId},{"hasRequestedAReview": false}, function(err, result){
+
+        if(err){
+            res.send(err)
+        }
+        else{
+            res.send({message:"account rejected"});
+        }
+
+    })
+})
+
 
 
 module.exports = router;
