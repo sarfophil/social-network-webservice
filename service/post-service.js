@@ -8,12 +8,9 @@ const Utils = require('../util/apputil')
 const Comment = require('../model/comment')
 const userModel = require('../model/user').getModel
 const ObjectId = require('mongodb').ObjectId;
-<<<<<<< HEAD
 const BlacklistedPostModel = require('../model/blacklistedPost');
-=======
 const ws = require('../config/websocket')
 
->>>>>>> 1c44b87e3afab50b200af717489d3a357ee57cbd
 
 const postService = {
 
@@ -38,11 +35,8 @@ const postService = {
 
         post.createOrUpdatePost().then((data) => {
 
-<<<<<<< HEAD
 
 
-=======
->>>>>>> 1c44b87e3afab50b200af717489d3a357ee57cbd
             if (data.isActive === false) {
                 // Account Deactivated
                 res.status(403); res.send({ error: true, message: "your account has been deactivated" });
@@ -87,19 +81,10 @@ const postService = {
                 }
 
             } else {
-<<<<<<< HEAD
 
 
                 if (data.error == false)
                     res.json({ message: "post created" });
-=======
-              //  wsutil([req.principal.payload.email],{reason: properties.appcodes.postCreated,content: 'Post Created Successfully'})
-                ws().then(socket => {
-                    socket.emit(req.principal.payload.email,{reason: properties.appcodes.postCreated,content: 'Post Created Successfully'})
-                })
-               if(data.error===false)
-               res.json({ message: "post created" });
->>>>>>> 1c44b87e3afab50b200af717489d3a357ee57cbd
                 // created
 
             }

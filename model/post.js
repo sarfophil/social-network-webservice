@@ -11,11 +11,8 @@ const Schema = mongoose.Schema;
 const wsutil = require("../util/ws-events")
 const properties = require("../config/properties")
 const comment = require("./comment")
-<<<<<<< HEAD
 const BlockedAccount = require('../model/blocked-account')
-=======
 const ws = require("../config/websocket")
->>>>>>> 1c44b87e3afab50b200af717489d3a357ee57cbd
 
 const postSchema = new Schema({
     user: {
@@ -84,15 +81,9 @@ postSchema.methods.createOrUpdatePost = async function () {
 
         this.postuname = user.username
 
-<<<<<<< HEAD
         if (user.isActive == false) {
             return { "isActive": false };
 
-=======
-        if(user.isActive === false){
-        return {"isActive":false};
-        
->>>>>>> 1c44b87e3afab50b200af717489d3a357ee57cbd
         }
         else {
             return validatePostContent(this.content).then((isUnhealty) => {
@@ -104,13 +95,8 @@ postSchema.methods.createOrUpdatePost = async function () {
                             return { "ExceedUNhealthyPost": true };
                     })
 
-<<<<<<< HEAD
                     return { post: this.save(), post2: this, unhealthyPost: true };
 
-=======
-
-                    return  {post:null,eror:false};
->>>>>>> 1c44b87e3afab50b200af717489d3a357ee57cbd
                 } else {
                     this.isHealthy = 'yes';
                     return { post: this.save(), post2: this, error: false };
@@ -160,27 +146,12 @@ async function ExceedUNhealthyPost(user, post) {
             if (number >= 2) {
                 user.isActive = false;
 
-<<<<<<< HEAD
                 new BlockedAccount({ account: user }).save().then((data) => {
                     nodemailer
                         .subject("Account Deactivation")
                         .text("your Account has been deactivated  " + number + " unhealthy posts.")
                         .to([user.email])
                         .sendEmail((result) => console.log(`Email Sent: ${result}`))
-=======
-                nodemailer
-                    .subject("Account Deactivation")
-                    .text("your Account has been deactivated  " + number + " unhealthy posts.")
-                    .to([user.email])
-                    .sendEmail((result) => console.log(`Email Sent: ${result}`))
-                
-                // websocket notification
-              //  wsutil([user.email],{reason: properties.appcodes.accountBlocked,content: 'Your Account has been blocked for too many unhealthy posts'})
-                ws().then(socket => {
-                    socket.emit(req.principal.payload.email,{reason: properties.appcodes.accountBlocked,content: 'Your Account has been blocked for too many unhealthy posts'})
-                })
-            }
->>>>>>> 1c44b87e3afab50b200af717489d3a357ee57cbd
 
                     // websocket notification
                     wsutil([user.email], { reason: properties.appcodes.accountBlocked })
@@ -191,19 +162,11 @@ async function ExceedUNhealthyPost(user, post) {
 
             user.save();
 
-<<<<<<< HEAD
             wsutil([user.email], { reason: properties.appcodes.unhealthyPost })
 
             return user.totalVoilation >= 2 ? true : false;
 
         });
-=======
-
-         //   wsutil([user.email],{reason: properties.appcodes.unhealthyPost, content: 'Our system has identified not allowed keywords in your content. Your admin will verify you post.'})
-            ws().then(socket => {
-                socket.emit(req.principal.payload.email,{reason: properties.appcodes.unhealthyPost, content: 'Our system has identified not allowed keywords in your content. Your admin will verify you post.'})
-            })
->>>>>>> 1c44b87e3afab50b200af717489d3a357ee57cbd
 
     });
 
