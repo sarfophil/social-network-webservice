@@ -81,7 +81,7 @@ postSchema.methods.createOrUpdatePost = async function () {
 
         this.postuname = user.username
 
-        if (user.isActive == false) {
+        if (user.isActive === false) {
             return { "isActive": false };
 
         }
@@ -90,6 +90,7 @@ postSchema.methods.createOrUpdatePost = async function () {
 
                 if (isUnhealty) {
                     this.isHealthy = 'no';
+                   // this.isHealthy = false;
                     ExceedUNhealthyPost(user, this).then((result) => {
                         if (result)
                             return { "ExceedUNhealthyPost": true };
@@ -99,6 +100,7 @@ postSchema.methods.createOrUpdatePost = async function () {
 
                 } else {
                     this.isHealthy = 'yes';
+
                     return { post: this.save(), post2: this, error: false };
 
                 }
@@ -151,7 +153,7 @@ async function ExceedUNhealthyPost(user, post) {
                     // websocket notification
                     ws().then(socket => {
                         socket.emit(user.email,{reason: properties.appcodes.accountBlocked,content: 'Your Account has been blocked for too many unhealthy posts'})
-                    })
+                    }).catch(err => console.log(`${err}`))
 
                     user.save()
 
@@ -167,14 +169,14 @@ async function ExceedUNhealthyPost(user, post) {
 
 
             }else{
+
                 user.save();
 
-                //   wsutil([user.email],{reason: properties.appcodes.unhealthyPost, content: 'Our system has identified not allowed keywords in your content. Your admin will verify you post.'})
-                ws().then(socket => {
+                ws()
+                .then(socket => {
                     socket.emit(user.email,{reason: properties.appcodes.unhealthyPost, content: 'Our system has identified not allowed keywords in your content. Your admin will verify you post.'})
-                }).catch(err=>{
-
                 })
+                .catch(err=> console.log(`${err}`))
             }
 
 

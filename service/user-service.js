@@ -501,21 +501,23 @@ exports.checkNotification = (req,res) => {
   let topic = req.principal.payload.email;
   Notification.find({topic: topic,status: false},(err,doc) =>{
     if(doc) {
-      console.log(doc)
-      sendNotification(doc);
+      sendNotification(doc)
+      res.status(200).send(doc)
+    }else {
+      res.status(200).send(doc)
     }
-    res.sendStatus(200)
-  } )
+
+  })
 }
 
   function sendNotification(docs){
-       ws().then(socket => {
-          for (let notification of docs){
-            socket.emit(notification.topic,{reason: notification.messageType,content: notification.message})
-            notification.status = true;
-            notification.save()
-          }
-       }).catch((err) => console.log(`${err}`))
+      if(docs.length > 0){
+        for (let notification of docs){
+          notification.status = true;
+          notification.save()
+        }
+      }
+
   }
 
   exports.getAllUsers=(req,res,next)=>{
