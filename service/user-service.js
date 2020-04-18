@@ -534,3 +534,13 @@ exports.checkNotification = (req,res) => {
           }
        }).catch((err) => console.log(`${err}`))
   }
+
+  exports.getAllUsers=(req,res,next)=>{
+    User.find({}, (err, doc) => {
+      if (err || !doc) {
+        res.sendStatus(404)
+      } else {
+        res.status(200).send(doc)
+      }
+    });
+  }
