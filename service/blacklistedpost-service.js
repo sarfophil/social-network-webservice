@@ -68,22 +68,24 @@ const blacklistedPostServiceImpl = {
         let blacklistedPost = await blacklistPostModel.find({
             "post._id":mongoose.Types.ObjectId(reviewId)
           }).then((b)=>{
-              if(b.post){
-              console.log("blackkkkk",b.post.user);
-            let user = User.findById(b.post.user)
-            user.totalVoilation = user.totalVoilation - 1;
-            user.save()
-              }
+           
           }).catch((err)=>{console.log(err)})
 
           if(!blacklistedPost)Promise.reject('Post not Available')
         
 
         // update is helthy status of the post
-        Post.findById(reviewId).then((post)=>{
+     await   Post.findById(reviewId).then((post)=>{
             if(post){
             post.isHealthy=true;
-            post.save();
+            post.save().then(()=>{
+                let user = User.findById(post.user).then((user)=>{
+                user.totalVoilation = user.totalVoilation - 1;
+                user.isActive=true;
+                user.save();
+                })
+                
+            });
             }
         })
 
@@ -97,7 +99,7 @@ const blacklistedPostServiceImpl = {
         
 
         // send notification
-        // wsutil([user.email],{reason: properties.appcodes.postVerified})
+        wsutil([user.email],{reason: properties.appcodes.postVerified})
 
         console.log("i am here");
         // updated

@@ -21,7 +21,6 @@ const jwt = require('../util/jwt')
 
 /** Admin Login */
 router.post('/login',function(req,res) {
-    console.log(req.body);
 
     let username = req.body.username
     let password = req.body.password
@@ -53,6 +52,11 @@ router.get('/ads',function(req,res) {
  */
 router.post('/ads',adminService.createAd)
 
+/** 
+ * Delete ad
+ */
+router.post('/ads/:id',adminService.deleteAd)
+
 /** Retrieve All Posts */
 router.get('/posts', function (req,res) {
     let requestBody = req.body
@@ -75,10 +79,10 @@ router.get('/posts/:postId',function (req,res) {
  * 
  *  */
 router.get('/blacklist/posts/reviews',function (req,res) {
-    let page = parseInt(req.query.page);
+    let page = parseInt(req.query.skip);
     const limit = parseInt(req.query.limit);
+    page*=limit;
 
-    console.log("limit",limit);
     BlacklistedPostModel.aggregate([{
         $lookup: {
             from: 'users',
@@ -103,14 +107,13 @@ router.get('/blacklist/posts/reviews',function (req,res) {
             as: 'post.userDetail'
         }
     }, { $sort: { 'createdDate': -1 } }, { $skip: page }, { $limit: limit },
-    { $project: { "post.userDetail": { "likes": 0, "location": 0, "email": 0, "age": 0, "createdDate": 0, "followers": 0, "following": 0, "totalVoilation": 0, "role": 0, "password": 0 }, "audienceFollowers": 0, "following": 0 } }
+    { $project: { "post.userDetail": { "likes": 0, "location": 0, "email": 0, "age": 0, "createdDate": 0, "followers": 0, "following": 0, "role": 0, "password": 0 }, "audienceFollowers": 0, "following": 0 } }
 
     ]
         , function (err, result) {
             if (err)
                 console.log(err + "  error")
             else {
-                console.log(result + "  result")
                 res.send(result);
             }
         })
@@ -124,7 +127,6 @@ router.put('/blacklist/posts/reviews/:reviewId',async function(req,res){
         res.send({error:false,message:"success"})
     })
     .catch(err => {
-        console.log(err)
         res.send(err)
     })
 })
@@ -191,7 +193,9 @@ router.delete('/blacklistwords/:blacklistId',function (req,res) {
  */
 router.get('/accounts/reviews',function(req,res) {
     let limit = parseInt(req.params.limit)
-    BlockedAccount.find({hasRequestedAReview: true},(err,doc) => res.status(200).send(doc)).limit(limit)
+    let skip = parseInt(req.params.skip)
+    skip=limit*skip;
+    BlockedAccount.find({hasRequestedAReview: true},(err,doc) => res.status(200).send(doc)).skip(skip).limit(limit)
 })
 
 
@@ -228,6 +232,23 @@ router.put('/accounts/reviews/:reviewId', function(req,res) {
 
     })
 })
+/**
+ * Reject  Account Activation Request
+ */
+router.put('/accounts/reviews/:reject', function(req,res) {
+    let reviewId = req.params.reviewId;
+    BlockedAccount.findByIdAndUpdate({"_id":reviewId},{"hasRequestedAReview": false}, function(err, result){
+
+        if(err){
+            res.send(err)
+        }
+        else{
+            res.send({message:"account rejected"});
+        }
+
+    })
+})
+
 
 
 module.exports = router;

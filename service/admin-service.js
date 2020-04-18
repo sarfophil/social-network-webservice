@@ -1,7 +1,7 @@
 const Admin = require('../model/admin').adminModel
 const bcrypt = require('../util/bcrypt')
 const jwt = require('../util/jwt')
-
+const ObjectID = require('mongodb').ObjectID;
 const AdvertModel = require('../model/advertisement').advertisementModel
 const fservice = require('../service/filestorage-service')
 
@@ -62,6 +62,15 @@ exports.createAd = function(req,res) {
             res.send('Input Validation Error')
         })
  
+}
+
+exports.deleteAd = function(req,res){
+  AdvertModel.findByIdAndDelete(ObjectID(req.params.id)).then(()=>{
+    res.send({message:"success"})
+  }).catch((err)=>{
+    console.log(err);
+    res.sendStatus(403);
+  })
 }
 
 function uploadImage(images,adId,callback){

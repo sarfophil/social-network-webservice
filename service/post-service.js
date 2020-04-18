@@ -200,7 +200,11 @@ const postService = {
     },
     delete: (req, res, next) => {
         Post.deleteOne({_id:ObjectId(req.params.postId)}).then(() => {
-            res.send({message:"post deleted"})
+            BlacklistedPostModel.findOneAndDelete({"post._id":ObjectId(req.params.postId)}).then((res)=>{
+                res.send({message:"post deleted"})
+            }).catch((err)=>{
+                res.send({message:"post deleted"})
+            })
         }).catch((err) => { throw new Error(err); })
     },
 
