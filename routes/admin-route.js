@@ -25,15 +25,18 @@ router.post('/login',function(req,res) {
     let username = req.body.username
     let password = req.body.password
     AdminModel.findOne({email: username},function(err,user){
-        if(err) res.statusCode(403)
-        let comparePassword = bcrypt.compareSync(password,user.password) 
-        if(comparePassword){
-          jwt.sign(user,(err,token) => {
-             if(err) res.status(500).send('Unable to sign token')
-             res.status(200).send({access_token: token})
-          })
-        }else{
-          res.sendStatus(403)
+        if(err || !user){
+            res.statusCode(403)
+        }else {
+            let comparePassword = bcrypt.compareSync(password,user.password)
+            if(comparePassword){
+                jwt.sign(user,(err,token) => {
+                    if(err) res.status(500).send('Unable to sign token')
+                    res.status(200).send({access_token: token})
+                })
+            }else{
+                res.sendStatus(403)
+            }
         }
       })
 })
@@ -43,7 +46,16 @@ router.post('/login',function(req,res) {
 router.get('/ads',function(req,res) {
     let skip = parseInt(req.query.skip);
     let limit = parseInt(req.query.limit);
-    AdvertModel.find((err,doc) => res.status(200).send(doc)).limit(limit).skip(skip)
+    AdminModel.find((err,doc) => res.status(200).send(doc)).limit(limit).skip(skip)
+})
+
+/**
+ * Get an Ad
+ */
+router.get('/ads/:adId',function (req,res) {
+    AdvertModel.findOne({_id: req.params.adId},(err,doc) => {
+        res.status(200).send(doc)
+    })
 })
 
 
@@ -167,7 +179,7 @@ router.post('/blacklistwords',function(req,res) {
             })      
         }
     }
-    res.status(201).send('blacklist created')
+    res.status(202).json({'message': 'Accepted'})
 })
 
 /**
@@ -183,7 +195,7 @@ router.get('/blacklistwords',function(req,res) {
  */
 router.delete('/blacklistwords/:blacklistId',function (req,res) {
     blacklistModel.deleteOne({_id: req.params.blacklistId.toString()},(err) => console.log(err))
-    res.status(200).send('keyword removed')
+    res.sendStatus(204)
 })
 
 

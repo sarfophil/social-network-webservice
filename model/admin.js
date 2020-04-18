@@ -36,6 +36,10 @@ const admin = {
     role: {
         type: String,
         default: 'USER_ADMIN'
+    },
+    isOnline: {
+        type: Boolean,
+        default: false
     }
 }
 
