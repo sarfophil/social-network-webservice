@@ -519,11 +519,14 @@ exports.checkNotification = (req,res) => {
   }
 
   exports.getAllUsers=(req,res,next)=>{
-    User.find({}, (err, doc) => {
+    let limit = parseInt(req.query.limit);
+    let skip = parseInt(req.query.skip);
+    skip = skip * limit
+    User.find({isActive: true}, (err, doc) => {
       if (err || !doc) {
         res.sendStatus(404)
       } else {
         res.status(200).send(doc)
       }
-    });
+    }).skip(skip).limit(limit);
   }

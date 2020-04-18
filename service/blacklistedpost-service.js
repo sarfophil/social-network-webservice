@@ -99,7 +99,7 @@ const blacklistedPostServiceImpl = {
         
 
         // send notification
-        wsutil([user.email],{reason: properties.appcodes.postVerified})
+        wsutil([user.email],{reason: properties.appcodes.postVerified, content: ""})
 
         console.log("i am here");
         // updated
