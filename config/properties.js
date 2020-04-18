@@ -25,7 +25,8 @@ const config = {
         accountBlocked: 115,
         postVerified: 116,
         profileUpdate: 117,
-        likePost: 118
+        likePost: 118,
+        postCreated: 119
     }
 };
 

@@ -18,27 +18,6 @@ const BlockedAccount = require('../model/blocked-account')
 const Notification = require('../model/notification').notificationModel
 const ws = require('../config/websocket')
 
-exports.login = (function (req, res) {
-  const username = req.body.username;
-  const password = req.body.password;
-
-  User.findOne({ $or: [{ username: { $eq: username } }, { email: { $eq: username } }] }, function (err, user) {
-    if (err) res.statusCode(403)
-    let comparePassword = bcrypt.compareSync(password, user.password)
-    if (comparePassword) {
-      // sign token 
-      jwt.sign(user, (err, token) => {
-        if (err) {
-          res.status(500).send('Unable to sign token')
-        } else {
-          res.status(200).send({ access_token: token })
-        }
-      })
-    } else {
-      res.sendStatus(403)
-    }
-  })
-})
 
 //update profile 
 exports.updateProfilePic = (function (req, res) {
@@ -196,20 +175,24 @@ exports.followUser = async function (req, res) {
 
 // retrieve all follwers of a user
 exports.getUserFollower = async function (req, res) {
-  User.findOne(ObjectId(req.principal.payload._id)).then((user) => {
-    user.populate({ path: 'followers.userId', select: ['username', 'followers', 'following', 'profilePicture'] })
-      .execPopulate().then((data) => { res.send(data.followers) })
-      .catch((err) => console.log(err));
-  });
+  let userId = req.params.userId;
+  User.findOne(ObjectId(userId)).then((user) => {
+    user.populate({path:'followers.userId',select: ['username','followers','following','profilePicture']})
+    .execPopulate().then((data) => { res.send(data.followers) })
+    .catch((err) => res.sendStatus(404));
+  }).catch((err) => res.sendStatus(404));
+
 }
 
 // retrieve all followings of a user
 exports.getUserFollowings = async function(req,res) {
-    User.findOne(ObjectId(req.principal.payload._id)).then((user) => {
+    let userId = req.params.userId;
+    User.findOne(ObjectId(userId)).then((user) => {
+
       user.populate({path:'following.userId',select: ['username','followers','following','profilePicture']})
           .execPopulate().then((data) => { res.send(data.following) })
           .catch((err) => console.log(err));
-    });
+    }).catch((err) => res.sendStatus(404));
 }
 
 // Post to Unfollow  user 
@@ -251,6 +234,7 @@ exports.unfollowUser = function (req, res) {
       //send user a notify about the follow
       notify([user.email], { reason: properties.appcodes.unfollow, content: 'A friend unfollowed you'})
 
+
       res.status(200).send('unfollowing  successfully');
     }
   });
@@ -269,6 +253,8 @@ exports.login = (function (req, res) {
           if (err) {
             res.status(500).send('Unable to sign token')
           } else {
+            user.isOnline = true;
+            user.save()
             res.status(200).send({ access_token: token, user: user })
           }
         })
@@ -501,10 +487,7 @@ exports.getNotification = (req,res) => {
   let limit = parseInt(req.query.limit)
   let skip = parseInt(req.query.skip)
   let topic = req.principal.payload.email;
-  Notification.find({topic: topic,status: false},(err,doc) =>{
-    if(doc) {
-      sendNotification(doc);
-    }
+  Notification.find({topic: topic},(err,doc) =>{
     res.status(200).send(doc)
   } ).sort({createdDate: -1}).limit(limit).skip(skip)
 }
