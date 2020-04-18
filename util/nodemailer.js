@@ -53,10 +53,18 @@ const createEmailAndSend = {
      * @param {Function} callback 
      */
     sendEmail : function(callback){
-        transporter.sendMail(emailTemplate, (err, info) => {
-            if(err) callback(err)
-            callback(info)
-        });
+        try{
+            transporter.sendMail(emailTemplate, (err, info) => {
+                if(err) {
+                    callback(err)
+                } else {
+                    callback(info)
+                }
+            });
+        } catch (e) {
+            callback(e)
+        }
+
     }
 }
 

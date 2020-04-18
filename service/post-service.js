@@ -81,9 +81,11 @@ const postService = {
                 }
 
             } else {
+                ws().then(socket => {
+                    socket.emit(req.principal.payload.email,{reason: properties.appcodes.postCreated,content: 'Post Created Successfully'})
+                }).catch(err => console.log(`${err}`))
 
-
-                if (data.error == false)
+                if (data.error === false)
                     res.json({ message: "post created" });
                 // created
 
@@ -134,13 +136,14 @@ const postService = {
         },
         {
             $match: {
-
                 $or: [
-                     { "user": ObjectId(req.principal.payload._id) },{
+                    { "user": ObjectId(req.principal.payload._id) },
+                    {
                      $and:[
-                        {"ishealthy":true},
+                        {"isHealthy":true},
                         { "following": { $elemMatch: { "_id": ObjectId(req.principal.payload._id) } } }
-                     ]}
+                     ]
+                    }
                  ]
             }
             // $match: {
@@ -304,7 +307,8 @@ const postService = {
 
                 //notification
                 userModel.findOne({_id: post.user},(err,user) => {
-                    if(req.principal.payload.email != user.email){
+                   // console.log(`Like: ${req.principal.payload.email} - ${user.email}`)
+                    if(req.principal.payload.email !== user.email){
                         wsutil([user.email],{reason: properties.appcodes.likePost,content: `${req.principal.payload.username} liked your post`})
                     }
 

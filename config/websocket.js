@@ -67,7 +67,6 @@ function adminEventListener(socket){
 
 module.exports = async function () {
     let socket = await io.on("connection",(socket) => {
-        socket.setMaxListeners(100)
         return socket;
     })
     return Promise.resolve(socket)
