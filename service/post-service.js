@@ -134,9 +134,18 @@ const postService = {
         },
         {
             $match: {
-                
-                $or: [{ "user": ObjectId(req.principal.payload._id) },{$and:[{ishealthy:true}, { "following": { $elemMatch: { "_id": ObjectId(req.principal.payload._id) } } }]}]
+
+                $or: [
+                     { "user": ObjectId(req.principal.payload._id) },{
+                     $and:[
+                        {"ishealthy":true},
+                        { "following": { $elemMatch: { "_id": ObjectId(req.principal.payload._id) } } }
+                     ]}
+                 ]
             }
+            // $match: {
+            //     $or: [{ "user": ObjectId( req.principal.payload._id) }, { "following": { $elemMatch: { "_id": ObjectId(req.principal.payload._id) } } }]
+            // }
         },
         {
             $lookup: {

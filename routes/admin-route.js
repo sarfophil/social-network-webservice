@@ -46,7 +46,7 @@ router.post('/login',function(req,res) {
 router.get('/ads',function(req,res) {
     let skip = parseInt(req.query.skip);
     let limit = parseInt(req.query.limit);
-    AdminModel.find((err,doc) => res.status(200).send(doc)).limit(limit).skip(skip)
+    AdvertModel.find((err,doc) => res.status(200).send(doc)).limit(limit).skip(skip)
 })
 
 /**

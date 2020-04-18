@@ -4,6 +4,8 @@ const jwt = require('../util/jwt')
 const ObjectID = require('mongodb').ObjectID;
 const AdvertModel = require('../model/advertisement').advertisementModel
 const fservice = require('../service/filestorage-service')
+const UserModel = require('../model/user').getModel;
+const ws = require('../util/ws-events')
 
 exports.login = (function(req,res,next){
     const username = req.body.username;
@@ -63,6 +65,8 @@ exports.createAd = function(req,res) {
         })
  
 }
+
+
 
 exports.deleteAd = function(req,res){
   AdvertModel.findByIdAndDelete(ObjectID(req.params.id)).then(()=>{

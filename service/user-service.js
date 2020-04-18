@@ -427,7 +427,7 @@ exports.loadAds = (req, res) => {
     let limit = parseInt(req.query.limit);
     let skip = parseInt(req.query.skip);
     let principal = req.principal.payload;
-
+    skip = limit * skip;
 
     let query = Ads.aggregate([
       {
