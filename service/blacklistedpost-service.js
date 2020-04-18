@@ -71,23 +71,23 @@ const blacklistedPostServiceImpl = {
            
           }).catch((err)=>{console.log(err)})
 
-          if(!blacklistedPost)Promise.reject('Post not Available')
+          if(!blacklistedPost) Promise.reject('Post not Available')
         
 
         // update is helthy status of the post
-     await   Post.findById(reviewId).then((post)=>{
-            if(post){
-            post.isHealthy=true;
-            post.save().then(()=>{
-                let user = User.findById(post.user).then((user)=>{
-                user.totalVoilation = user.totalVoilation - 1;
-                user.isActive=true;
-                user.save();
-                })
-                
-            });
-            }
-        })
+         await Post.findById(reviewId).then((post)=>{
+                if(post){
+                post.isHealthy=true;
+                post.save().then(()=>{
+                    let user = User.findById(post.user).then((user)=>{
+                    user.totalVoilation = user.totalVoilation - 1;
+                    user.isActive=true;
+                    user.save();
+                    })
+
+                });
+                }
+            })
 
         // remove from black list
         await blacklistPostModel.deleteOne({
@@ -101,7 +101,7 @@ const blacklistedPostServiceImpl = {
         // send notification
         wsutil([user.email],{reason: properties.appcodes.postVerified, content: ""})
 
-        console.log("i am here");
+
         // updated
         return Promise.resolve("done");
     },

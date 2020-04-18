@@ -140,31 +140,46 @@ async function ExceedUNhealthyPost(user, post) {
     new BlacklistedPost({ post: post }).save().then(() => {
         return BlacklistedPost.find({ 'post.user': user._id }).countDocuments().then((number) => {
 
-            user.totalVoilation = number;
+            user.totalVoilation += 1;
             console.log("isActive", user.totalVoilation)
 
-            if (number >= 2) {
+            if (user.totalVoilation >= 20) {
                 user.isActive = false;
 
                 new BlockedAccount({ account: user }).save().then((data) => {
-                    nodemailer
-                        .subject("Account Deactivation")
-                        .text("your Account has been deactivated  " + number + " unhealthy posts.")
-                        .to([user.email])
-                        .sendEmail((result) => console.log(`Email Sent: ${result}`))
 
                     // websocket notification
-                    wsutil([user.email], { reason: properties.appcodes.accountBlocked })
+                    ws().then(socket => {
+                        socket.emit(user.email,{reason: properties.appcodes.accountBlocked,content: 'Your Account has been blocked for too many unhealthy posts'})
+                    })
+
+                    user.save()
+
+                    nodemailer
+                            .subject("Account Deactivation")
+                            .text("your Account has been deactivated  " + number + " unhealthy posts.")
+                            .to([user.email])
+                            .sendEmail((result) => console.log(`Email Sent: ${result}`))
+
+
                 }).catch(err => console.log(err))
 
 
+
+            }else{
+                user.save();
+
+                //   wsutil([user.email],{reason: properties.appcodes.unhealthyPost, content: 'Our system has identified not allowed keywords in your content. Your admin will verify you post.'})
+                ws().then(socket => {
+                    socket.emit(user.email,{reason: properties.appcodes.unhealthyPost, content: 'Our system has identified not allowed keywords in your content. Your admin will verify you post.'})
+                }).catch(err=>{
+
+                })
             }
 
-            user.save();
 
-            wsutil([user.email], { reason: properties.appcodes.unhealthyPost })
 
-            return user.totalVoilation >= 2 ? true : false;
+            return user.totalVoilation >= 20;
 
         });
 
