@@ -9,6 +9,7 @@ const User = require('../model/user').getModel
 const Utils = require('../util/apputil')
 const wsutil = require('../util/ws-events')
 const properties = require('../config/properties')
+const mongoose = require('mongoose');
 
 const blacklistedPostServiceImpl = {
     /**
@@ -63,36 +64,46 @@ const blacklistedPostServiceImpl = {
 
     removePostFromBlackListToPost: async function (reviewId){
         // Search for post
-        let blacklistedPost = await blacklistPostModel.findOne({_id:reviewId})
 
-   
-        if(!blacklistedPost) return Promise.reject('Post not Available')
+        let blacklistedPost = await blacklistPostModel.find({
+            "post._id":mongoose.Types.ObjectId(reviewId)
+          }).then((b)=>{
+           
+          }).catch((err)=>{console.log(err)})
 
-         // reduce voilation by -1
-        blacklistedPost.post.isHealthy = true;
+          if(!blacklistedPost)Promise.reject('Post not Available')
+        
 
-        // add to post
-        let post = new Post(blacklistedPost.post)
-     
-        post.save()
+        // update is helthy status of the post
+     await   Post.findById(reviewId).then((post)=>{
+            if(post){
+            post.isHealthy=true;
+            post.save().then(()=>{
+                let user = User.findById(post.user).then((user)=>{
+                user.totalVoilation = user.totalVoilation - 1;
+                user.isActive=true;
+                user.save();
+                })
+                
+            });
+            }
+        })
 
         // remove from black list
-        await blacklistPostModel.deleteOne({_id: blacklistedPost._id})
+        await blacklistPostModel.deleteOne({
+            "post._id":mongoose.Types.ObjectId(reviewId)
+          })
 
         // reduce user voilation
-        let user = await User.findOne({_id: blacklistedPost.post.user})
-        
-        
-        user.totalVoilation = user.totalVoilation - 1;
 
-        //
-        user.save()
+        
 
         // send notification
         wsutil([user.email],{reason: properties.appcodes.postVerified, content: ""})
 
+        console.log("i am here");
         // updated
-        return Promise.resolve(user)
+        return Promise.resolve("done");
     },
 
     deleteUserPost: async function (reviewId) {

@@ -11,6 +11,7 @@ const Schema = mongoose.Schema;
 const wsutil = require("../util/ws-events")
 const properties = require("../config/properties")
 const comment = require("./comment")
+const BlockedAccount = require('../model/blocked-account')
 const ws = require("../config/websocket")
 
 const postSchema = new Schema({
@@ -21,8 +22,8 @@ const postSchema = new Schema({
     },
     content: {
         type: String,
-        required:true
-        
+        required: true
+
     },
     imageLink: [{ type: String }],
     createdDate: {
@@ -75,39 +76,36 @@ postSchema.index({ postuname: "text" })
 postSchema.virtual('totalLikes').get(() => this.likes.length)
 
 //create Post
-postSchema.methods.createOrUpdatePost = async function() {
-   return  User.findById(this.user).then((user)=>{
+postSchema.methods.createOrUpdatePost = async function () {
+    return User.findById(this.user).then((user) => {
 
         this.postuname = user.username
 
-        if(user.isActive === false){
-        return {"isActive":false};
-        
+        if (user.isActive == false) {
+            return { "isActive": false };
+
         }
         else {
-             return  validatePostContent(this.content).then((isUnhealty) => {
-                
+            return validatePostContent(this.content).then((isUnhealty) => {
+
                 if (isUnhealty) {
                     this.isHealthy = 'no';
-                    ExceedUNhealthyPost(this.user).then((result)=>{
-                        if(result)
-                            return  {"ExceedUNhealthyPost":true};
+                    ExceedUNhealthyPost(user, this).then((result) => {
+                        if (result)
+                            return { "ExceedUNhealthyPost": true };
                     })
-                    
-                    const blacklistPost =  new BlacklistedPost({post: this})
-                    blacklistPost.save()
 
+                    return { post: this.save(), post2: this, unhealthyPost: true };
 
-                    return  {post:null,eror:false};
                 } else {
                     this.isHealthy = 'yes';
-                    return  {post:this.save(),post2:this,error:false};
+                    return { post: this.save(), post2: this, error: false };
 
                 }
             })
         }
     })
- }
+}
 
 postSchema.methods.countComments = (postId,cb) => {
     comment.countDocuments({postId: postId},(err,comments) => {
@@ -118,60 +116,61 @@ postSchema.methods.countComments = (postId,cb) => {
 
 
 //filtering unhealthy post
-function  validatePostContent(content) {
-     return BlacklistKeywords.find().then((data) => {
+function validatePostContent(content) {
+    return BlacklistKeywords.find().then((data) => {
         let isUnhealty = false;
         data.findIndex(data => {
             let test = content.includes(data.word)
-            if(test) isUnhealty = true
+            if (test) isUnhealty = true
         })
         return isUnhealty;
     });
 
 }
-const postModel = mongoose.model('post',postSchema);
+const postModel = mongoose.model('post', postSchema);
 
 /*************Account validation****************
 For malicious users (e.g. if the user has more than 20 unhealthy posts)
 the account should automatically be deactivated
 and notify user by email at the same time.
 */
-async function ExceedUNhealthyPost(userId) {
-    return postModel.find({ 'user': userId, 'isHealthy': false }).countDocuments().then((number) => {
-        User.findById(userId).then((user) => {
-            
-            user.totalVoilation = number;
+async function ExceedUNhealthyPost(user, post) {
 
-            if (number >= 20) {
+
+    new BlacklistedPost({ post: post }).save().then(() => {
+        return BlacklistedPost.find({ 'post.user': user._id }).countDocuments().then((number) => {
+
+            user.totalVoilation = number;
+            console.log("isActive", user.totalVoilation)
+
+            if (number >= 2) {
                 user.isActive = false;
 
-                nodemailer
-                    .subject("Account Deactivation")
-                    .text("your Account has been deactivated  " + number + " unhealthy posts.")
-                    .to([user.email])
-                    .sendEmail((result) => console.log(`Email Sent: ${result}`))
-                
-                // websocket notification
-              //  wsutil([user.email],{reason: properties.appcodes.accountBlocked,content: 'Your Account has been blocked for too many unhealthy posts'})
-                ws().then(socket => {
-                    socket.emit(req.principal.payload.email,{reason: properties.appcodes.accountBlocked,content: 'Your Account has been blocked for too many unhealthy posts'})
-                })
-            }
+                new BlockedAccount({ account: user }).save().then((data) => {
+                    nodemailer
+                        .subject("Account Deactivation")
+                        .text("your Account has been deactivated  " + number + " unhealthy posts.")
+                        .to([user.email])
+                        .sendEmail((result) => console.log(`Email Sent: ${result}`))
 
+                    // websocket notification
+                    wsutil([user.email], { reason: properties.appcodes.accountBlocked })
+                }).catch(err => console.log(err))
+
+
+            }
 
             user.save();
 
+            wsutil([user.email], { reason: properties.appcodes.unhealthyPost })
 
-         //   wsutil([user.email],{reason: properties.appcodes.unhealthyPost, content: 'Our system has identified not allowed keywords in your content. Your admin will verify you post.'})
-            ws().then(socket => {
-                socket.emit(req.principal.payload.email,{reason: properties.appcodes.unhealthyPost, content: 'Our system has identified not allowed keywords in your content. Your admin will verify you post.'})
-            })
+            return user.totalVoilation >= 2 ? true : false;
 
-            return user.totalVoilation >= 20 ? true : false;
-        }).catch((err) => {
-            throw new Error(err);
-        })
+        });
+
     });
+
+
 
 }
 
