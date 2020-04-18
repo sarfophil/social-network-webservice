@@ -286,7 +286,10 @@ const postService = {
 
                 //notification
                 userModel.findOne({_id: post.user},(err,user) => {
-                    wsutil([user.email],{reason: properties.appcodes.likePost,content: `${req.principal.payload.username} liked your post`})
+                    if(req.principal.payload.email != user.email){
+                        wsutil([user.email],{reason: properties.appcodes.likePost,content: `${req.principal.payload.username} liked your post`})
+                    }
+
                 })
             }
         })

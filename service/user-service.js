@@ -175,20 +175,23 @@ exports.followUser = async function (req, res) {
 
 // retrieve all follwers of a user
 exports.getUserFollower = async function (req, res) {
-  User.findOne(ObjectId(req.principal.payload._id)).then((user) => {
+  let userId = req.params.userId;
+  User.findOne(ObjectId(userId)).then((user) => {
     user.populate({path:'followers.userId',select: ['username','followers','following','profilePicture']})
     .execPopulate().then((data) => { res.send(data.followers) })
-    .catch((err) => console.log(err));
-  });
+    .catch((err) => res.sendStatus(404));
+  }).catch((err) => res.sendStatus(404));
 }
 
 // retrieve all followings of a user
 exports.getUserFollowings = async function(req,res) {
-    User.findOne(ObjectId(req.principal.payload._id)).then((user) => {
+    let userId = req.params.userId;
+    User.findOne(ObjectId(userId)).then((user) => {
+
       user.populate({path:'following.userId',select: ['username','followers','following','profilePicture']})
           .execPopulate().then((data) => { res.send(data.following) })
           .catch((err) => console.log(err));
-    });
+    }).catch((err) => res.sendStatus(404));
 }
 
 // Post to Unfollow  user 
@@ -229,6 +232,7 @@ exports.unfollowUser = function (req, res) {
 
       //send user a notify about the follow
       notify([user.email], { reason: properties.appcodes.unfollow, content: 'A friend unfollowed you'})
+
 
       res.status(200).send('unfollowing  successfully');
     }

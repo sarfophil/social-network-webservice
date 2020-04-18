@@ -45,7 +45,16 @@ router.post('/login',function(req,res) {
 router.get('/ads',function(req,res) {
     let skip = parseInt(req.query.skip);
     let limit = parseInt(req.query.limit);
-    AdvertModel.find((err,doc) => res.status(200).send(doc)).limit(limit).skip(skip)
+    AdminModel.find((err,doc) => res.status(200).send(doc)).limit(limit).skip(skip)
+})
+
+/**
+ * Get an Ad
+ */
+router.get('/ads/:adId',function (req,res) {
+    AdvertModel.findOne({_id: req.params.adId},(err,doc) => {
+        res.status(200).send(doc)
+    })
 })
 
 
