@@ -3,7 +3,12 @@ const userService=require('../service/user-service');
 const router = express.Router();
 
 // User Followers Route
+router.get('/all-users',userService.getAllUsers);
+// User Followers Route
+router.get('/followers',userService.getUserFollower);
+
 router.get('/:userId/followers',userService.getUserFollower);
+
 
 // User Followings
 router.get('/:userId/following',userService.getUserFollowings)

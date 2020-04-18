@@ -56,15 +56,15 @@ const user = {
     followers: [{
         userId: {
             type: mongoose.Schema.Types.ObjectId,
-            ref:'user',
-            required: true
+            ref:'user'
+           
         }
     }],
     following: [{
         userId: {
             type: mongoose.Schema.Types.ObjectId,
-            ref:'user',
-            required: true
+            ref:'user'
+            
         }
     }],
     profilePicture: String,
