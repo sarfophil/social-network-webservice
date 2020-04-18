@@ -15,28 +15,9 @@ const mongoose = require('mongoose')
 const Utils = require('../util/apputil')
 const Ads = require('../model/advertisement').advertisementModel
 const BlockedAccount = require('../model/blocked-account')
+const Notification = require('../model/notification').notificationModel
+const ws = require('../config/websocket')
 
-exports.login = (function (req, res) {
-  const username = req.body.username;
-  const password = req.body.password;
-
-  User.findOne({ $or: [{ username: { $eq: username } }, { email: { $eq: username } }] }, function (err, user) {
-    if (err) res.statusCode(403)
-    let comparePassword = bcrypt.compareSync(password, user.password)
-    if (comparePassword) {
-      // sign token 
-      jwt.sign(user, (err, token) => {
-        if (err) {
-          res.status(500).send('Unable to sign token')
-        } else {
-          res.status(200).send({ access_token: token })
-        }
-      })
-    } else {
-      res.sendStatus(403)
-    }
-  })
-})
 
 //update profile 
 exports.updateProfilePic = (function (req, res) {
@@ -50,7 +31,7 @@ exports.updateProfilePic = (function (req, res) {
 
         user.save().then(() => {
           res.status(200).send(names)
-          notify([user.email],{reason: properties.appcodes.profileUpdate})
+          notify([user.email],{reason: properties.appcodes.profileUpdate,content: 'Profile Update'})
         })
 
       })
@@ -97,7 +78,7 @@ exports.followUser = async function (req, res) {
         user.save();
 
         //send user a notify about the follow
-        notify([user.email], { follower: follower, reason: properties.appcodes.follow })
+        notify([user.email], { follower: follower, reason: properties.appcodes.follow, content: `${follower.username} followed you`})
 
       });
     });
@@ -178,7 +159,7 @@ exports.followUser = async function (req, res) {
         user.save();
 
         //send user a notify about the follow
-        notify([user.email], { follower: follower, reason: properties.appcodes.follow })
+        notify([user.email], { follower: follower, reason: properties.appcodes.follow , content: `${follower.username} followed you` })
 
       });
     });
@@ -194,20 +175,24 @@ exports.followUser = async function (req, res) {
 
 // retrieve all follwers of a user
 exports.getUserFollower = async function (req, res) {
-  User.findOne(ObjectId(req.principal.payload._id)).then((user) => {
+  let userId = req.params.userId;
+  User.findOne(ObjectId(userId)).then((user) => {
     user.populate({path:'followers.userId',select: ['username','followers','following','profilePicture']})
     .execPopulate().then((data) => { res.send(data.followers) })
-    .catch((err) => console.log(err));
-  });
+    .catch((err) => res.sendStatus(404));
+  }).catch((err) => res.sendStatus(404));
+
 }
 
 // retrieve all followings of a user
 exports.getUserFollowings = async function(req,res) {
-    User.findOne(ObjectId(req.principal.payload._id)).then((user) => {
+    let userId = req.params.userId;
+    User.findOne(ObjectId(userId)).then((user) => {
+
       user.populate({path:'following.userId',select: ['username','followers','following','profilePicture']})
           .execPopulate().then((data) => { res.send(data.following) })
           .catch((err) => console.log(err));
-    });
+    }).catch((err) => res.sendStatus(404));
 }
 
 // Post to Unfollow  user 
@@ -247,15 +232,13 @@ exports.unfollowUser = function (req, res) {
       });
 
       //send user a notify about the follow
-      notify([user.email], { reason: properties.appcodes.unfollow })
+      notify([user.email], { reason: properties.appcodes.unfollow, content: 'A friend unfollowed you'})
+
 
       res.status(200).send('unfollowing  successfully');
     }
   });
-
-
 }
-
 
 exports.login = (function (req, res) {
   const username = req.body.username;
@@ -270,6 +253,8 @@ exports.login = (function (req, res) {
           if (err) {
             res.status(500).send('Unable to sign token')
           } else {
+            user.isOnline = true;
+            user.save()
             res.status(200).send({ access_token: token, user: user })
           }
         })
@@ -301,44 +286,44 @@ exports.loadUserPosts = (req, res) => {
 
   Postt.aggregate([{
     $lookup: {
-        from: 'users',
-        localField: 'user',
-        foreignField: 'following.userId',
-        as: 'following'
+      from: 'users',
+      localField: 'user',
+      foreignField: 'following.userId',
+      as: 'following'
     }
-},
- {
+  },
+  {
     $match: {
-         "user": ObjectId( req.principal.payload._id)   
+      "user": ObjectId(req.principal.payload._id)
     }
-},
- {
+  },
+  {
     $lookup: {
-        from: 'users',
-        localField: 'likes.user',
-        foreignField: '_id',
-        as: 'reactedUsers'
+      from: 'users',
+      localField: 'likes.user',
+      foreignField: '_id',
+      as: 'reactedUsers'
     }
-},
-{
+  },
+  {
     $lookup: {
-        from: 'users',
-        localField: 'user',
-        foreignField: '_id',
-        as: 'userDetail'
+      from: 'users',
+      localField: 'user',
+      foreignField: '_id',
+      as: 'userDetail'
     }
-},{$sort: { 'createdDate': -1 } },{ $skip : skip },{ $limit : limit },
+  }, { $sort: { 'createdDate': -1 } }, { $skip: skip }, { $limit: limit },
 
-{ $project: { "userDetail": {"likes":0,"location":0,"email":0,"age":0,"createdDate":0,"followers":0,"following":0,"totalVoilation":0,"role":0,"password":0}, "audienceFollowers" : 0, "following":0}}
-]
-,function (err,result){
-    if(err)
-    console.log(err + "  error")
-    else{
-    console.log(result + "  result" )
-    res.send(result);
-    }
-});
+  { $project: { "userDetail": { "likes": 0, "location": 0, "email": 0, "age": 0, "createdDate": 0, "followers": 0, "following": 0, "totalVoilation": 0, "role": 0, "password": 0 }, "audienceFollowers": 0, "following": 0 } }
+  ]
+    , function (err, result) {
+      if (err)
+        console.log(err + "  error")
+      else {
+        console.log(result + "  result")
+        res.send(result);
+      }
+    });
 
 }
 
@@ -374,6 +359,13 @@ exports.unfollowUser = (req, res, next) => {
 function followOrUnfollow(req, res, key) {
   const userId = ObjectId(req.params.userId);
   const friendId = ObjectId(req.params.friendId);
+  let friend;
+  User.findById(req.params.friendId).then((f) => {
+    friend = f;
+  })
+    .catch(err => {
+      console.log(err);
+    });
   if (key == 'follow') {
     User.findById(userId).then((user) => {
       const exist = user.following.map(function (e) {
@@ -382,21 +374,19 @@ function followOrUnfollow(req, res, key) {
       if (exist != -1) {
         res.send({ message: "you have already followd this user" });
       } else {
-
-        user.following.push({ userId: friendId })
+        user.following.push({ userId: friendId });
         user.save().then((data) => {
           if (!data) {
             res.send({ message: "unable to follow " })
             return 0;
           } else {
-
             User.findById(friendId).then((user2) => {
               user2.followers.push({ userId: userId })
               user2.save().then(() => {
                 if (!data) {
                   res.send({ message: "unable to follow " })
                 } else {
-                  res.json({ message: "started following  user " })
+                  res.status(200).send(friend)
                 }
               })
             })
@@ -418,7 +408,7 @@ function followOrUnfollow(req, res, key) {
           if (err2) {
             res.send({ message: "unable to unfollow 2" })
           } else if (data2.nModified > 0) {
-            res.json({ message: "started unfollowing user" });
+            res.status(200).send(friend)
           } else {
             res.send("you are not following this user 2");
           }
@@ -431,61 +421,112 @@ function followOrUnfollow(req, res, key) {
   }
 }
 
-exports.loadAds = (req,res) => {
+exports.loadAds = (req, res) => {
 
-  try{
+  try {
     let limit = parseInt(req.query.limit);
     let skip = parseInt(req.query.skip);
     let principal = req.principal.payload;
-
+    skip = limit * skip;
 
     let query = Ads.aggregate([
-        {
-          $match: {
-            $and: [
-              {"audienceCriteria.age.min": {$gte: principal.age}},
-              {"audienceCriteria.age.max": {$gte: principal.age}}
-            ]
-          }
+      {
+        $match: {
+          $and: [
+            { "audienceCriteria.age.min": { $gte: principal.age } },
+            { "audienceCriteria.age.max": { $gte: principal.age } }
+          ]
         }
-    ]).limit(limit).skip(skip).sort({createdDate: -1})
+      }
+    ]).limit(limit).skip(skip).sort({ createdDate: -1 })
     query.exec().then((doc) => {
       res.status(200).send(doc)
-    }).catch(err=> {
+    }).catch(err => {
       console.log(err)
     })
-  }catch (e) {
+  } catch (e) {
     res.sendStatus(200)
   }
 
 }
 
-exports.submitAccountForReview = function(req,res) {
+exports.submitAccountForReview = function (req, res) {
   try {
     let email = req.body.email;
-    BlockedAccount.findOne({"account.email": email}, (err, doc) => {
+    BlockedAccount.findOne({ "account.email": email }, (err, doc) => {
       if (err || !doc) {
         res.sendStatus(404)
-      }else{
+      } else {
         doc.hasRequestedAReview = true
         doc.save()
         //TODO: Admin Notification
         res.sendStatus(201)
       }
     })
-  }catch (e) {
-      res.sendStatus(404)
+  } catch (e) {
+    res.sendStatus(404)
   }
 
 }
 
 
-exports.findUserById = (req,res) => {
-  User.findOne({_id: req.params.userId}, (err,doc) => {
-    if(err || !doc){
+exports.findUserById = (req, res) => {
+  User.findOne({ _id: req.params.userId }, (err, doc) => {
+    if (err || !doc) {
       res.sendStatus(404)
-    }else{
-       res.status(200).send(doc)
+    } else {
+      res.status(200).send(doc)
     }
-  })
+  });
 }
+
+/**
+ * Get Notifications
+ */
+exports.getNotification = (req,res) => {
+  let limit = parseInt(req.query.limit)
+  let skip = parseInt(req.query.skip)
+  let topic = req.principal.payload.email;
+  Notification.find({topic: topic},(err,doc) =>{
+    res.status(200).send(doc)
+  } ).sort({createdDate: -1}).limit(limit).skip(skip)
+}
+
+/**
+ * Check Notification
+ * @param req
+ * @param res
+ */
+exports.checkNotification = (req,res) => {
+  let topic = req.principal.payload.email;
+  Notification.find({topic: topic,status: false},(err,doc) =>{
+    if(doc) {
+      console.log(doc)
+      sendNotification(doc);
+    }
+    res.sendStatus(200)
+  } )
+}
+
+  function sendNotification(docs){
+       ws().then(socket => {
+          for (let notification of docs){
+            socket.emit(notification.topic,{reason: notification.messageType,content: notification.message})
+            notification.status = true;
+            notification.save()
+          }
+       }).catch((err) => console.log(`${err}`))
+  }
+
+  exports.getAllUsers=(req,res,next)=>{
+    let limit = parseInt(req.query.limit);
+    let skip = parseInt(req.query.skip);
+    skip = skip * limit
+    User.find({isActive: true}, (err, doc) => {
+      if (err || !doc) {
+        res.sendStatus(404)
+      } else {
+        res.status(200).send(doc)
+      }
+    }).skip(skip).limit(limit);
+  }

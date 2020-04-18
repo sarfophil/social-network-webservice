@@ -3,10 +3,15 @@ const userService=require('../service/user-service');
 const router = express.Router();
 
 // User Followers Route
-router.get('/followers',userService.getUserFollower);
+router.get('/all-users',userService.getAllUsers);
+// User Followers Route
+//router.get('/followers',userService.getUserFollower);
+
+router.get('/:userId/followers',userService.getUserFollower);
+
 
 // User Followings
-router.get('/following',userService.getUserFollowings)
+router.get('/:userId/following',userService.getUserFollowings)
 
 
 // Create Account
@@ -46,7 +51,12 @@ router.get('/:userId/ads',userService.loadAds)
 router.post('/report',userService.submitAccountForReview)
 
 
+// notification
+router.get('/notification',userService.getNotification)
 
+
+// check notification
+router.get('/check_notification',userService.checkNotification)
 
 
 module.exports = router;

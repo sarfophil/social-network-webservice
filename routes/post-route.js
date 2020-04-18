@@ -36,6 +36,7 @@ router.get('/:postId/comments/count',postService.countTotalComment)
 
 // remove comment 
 router.delete('/:postId/comments/:commentId',postService.deleteComment)
-
+//UnhealthyPosts
+router.get('/:userId/unhealthy',postService.getUnhealthyPosts)
 
 module.exports = router;
