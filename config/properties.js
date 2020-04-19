@@ -3,10 +3,11 @@
  */
 
 
-
 const config = {
     dbConnectionHost: 'mongodb://localhost:27017/',
-    dbName:'social-network-db',
+    dbName: 'social-network-db',
+    // dbConnectionHost: 'mongodb://ummorpvfpwhtfzi5hmrv:WBHmUNqwGZd9J73YK7VJ@bjkxckz0on7werp-mongodb.services.clever-cloud.com:27017/',
+    // dbName:'bjkxckz0on7werp',
     // geoDistance is used by GEOJSON to query posts based on user provided coords and geodistance
     geoDistance: { minDistance: 0, maxDistance: 1000},
     maxVoilationLimit: 20,

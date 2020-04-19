@@ -85,9 +85,13 @@ const postService = {
                     socket.emit(req.principal.payload.email,{reason: properties.appcodes.postCreated,content: 'Post Created Successfully'})
                 }).catch(err => console.log(`${err}`))
 
-                if (data.error === false)
+                if (data.error === false){
+                    ws().then(socket => {
+                        socket.emit(req.principal.payload.email,{reason: properties.appcodes.postCreated,content: 'Post Created Successfully'})
+                    }).catch(err => console.log(`${err}`))
                     res.json({ message: "post created" });
-                // created
+                }
+
 
             }
         }).catch((error) => {
