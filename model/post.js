@@ -157,11 +157,11 @@ async function ExceedUNhealthyPost(user, post) {
 
                     user.save()
 
-                    nodemailer
-                            .subject("Account Deactivation")
-                            .text("your Account has been deactivated  " + number + " unhealthy posts.")
-                            .to([user.email])
-                            .sendEmail((result) => console.log(`Email Sent: ${result}`))
+                    // nodemailer
+                    //         .subject("Account Deactivation")
+                    //         .text("your Account has been deactivated  " + number + " unhealthy posts.")
+                    //         .to([user.email])
+                    //         .sendEmail((result) => console.log(`Email Sent: ${result}`))
 
 
                 }).catch(err => console.log(err))

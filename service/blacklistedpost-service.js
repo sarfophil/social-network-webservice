@@ -10,6 +10,7 @@ const Utils = require('../util/apputil')
 const wsutil = require('../util/ws-events')
 const properties = require('../config/properties')
 const mongoose = require('mongoose');
+const BlockAccount = require('../model/blocked-account')
 
 const blacklistedPostServiceImpl = {
     /**
@@ -64,47 +65,55 @@ const blacklistedPostServiceImpl = {
 
     removePostFromBlackListToPost: async function (reviewId){
         // Search for post
-
         let blacklistedPost = await blacklistPostModel.find({
             "post._id":mongoose.Types.ObjectId(reviewId)
           }).then((b)=>{
-           
+            if(!b) {
+                return Promise.reject('Post not Available')
+            }
           }).catch((err)=>{console.log(err)})
-
-          if(!blacklistedPost) Promise.reject('Post not Available')
-        
-
-        // update is helthy status of the post
-         await Post.findById(reviewId).then((post)=>{
-                if(post){
-                post.isHealthy=true;
-                post.save().then(()=>{
-                    let user = User.findById(post.user).then((user)=>{
-                    user.totalVoilation = user.totalVoilation - 1;
-                    user.isActive=true;
-                    user.save();
-                    })
-
-                });
-                }
-            })
 
         // remove from black list
         await blacklistPostModel.deleteOne({
             "post._id":mongoose.Types.ObjectId(reviewId)
-          })
+        })
 
-        // reduce user voilation
+        // update is helthy status of the post
+         await Post.findById(reviewId).then((post)=>{
+                console.log(`Loading post ...`)
+                console.log(post)
+                if(post){
+                post.isHealthy=true;
+                post.save();
+                console.log(`Checkup the user`)
+                let user = User.findById(post.user)
+                    .then((user)=>{
+                            console.log(user)
+                            user.totalVoilation = user.totalVoilation - 1;
+                            user.isActive=true;
+                            user.save();
 
-        
+                            BlockAccount.deleteOne({"account._id": user._id},(err,doc) => console.log(doc))
+                     }).catch((err) => {
+                        console.log(`An error Occured {}`)
+                        console.log(err.stack)
+                    })
+
+                }
+         })
+
+
+
 
         // send notification
-        wsutil([user.email],{reason: properties.appcodes.postVerified, content: ""})
+        wsutil([user.email],{reason: properties.appcodes.postVerified, content: "Post has been verified"})
 
 
         // updated
         return Promise.resolve("done");
     },
+
+
 
     deleteUserPost: async function (reviewId) {
         // remove from black list
