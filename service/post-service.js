@@ -81,10 +81,6 @@ const postService = {
                 }
 
             } else {
-                ws().then(socket => {
-                    socket.emit(req.principal.payload.email,{reason: properties.appcodes.postCreated,content: 'Post Created Successfully'})
-                }).catch(err => console.log(`${err}`))
-
                 if (data.error === false){
                     ws().then(socket => {
                         socket.emit(req.principal.payload.email,{reason: properties.appcodes.postCreated,content: 'Post Created Successfully'})
@@ -468,7 +464,8 @@ function publishNotification(targetUsers) {
         for (let user of targetUsers) {
             targetEmails.push(user.email)
         }
-        wsutil(targetEmails, { reason: properties.appcodes.newPost , content: 'A new Post Available'})
+
+        wsutil(targetEmails, { reason: properties.appcodes.newPost, content: 'A new Post Available'})
     }
 }
 

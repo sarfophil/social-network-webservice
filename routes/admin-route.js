@@ -133,15 +133,15 @@ router.get('/blacklist/posts/reviews',function (req,res) {
 
 
 // accept
-router.put('/blacklist/posts/reviews/:reviewId',async function(req,res){
-  await  blacklistedPostService.removePostFromBlackListToPost(req.params.reviewId)
+router.put('/blacklist/posts/reviews/:reviewId',function(req,res){
+   blacklistedPostService.removePostFromBlackListToPost(req.params.reviewId)
     .then(result => {
         res.send({error:false,message:"success"})
     })
     .catch(err => {
         res.send(err)
     })
-})
+});
 
 
 // reject
@@ -215,34 +215,39 @@ router.get('/accounts/reviews',function(req,res) {
  * Approve an Account
  */
 router.put('/accounts/reviews/:reviewId', function(req,res) {
-    let reviewId = req.params.reviewId;
-    BlockedAccount.findById({_id: reviewId},(err,doc) => {
-        if(err) res.sendStatus(404)
-        
-        UserModel.findOne({_id: doc.account._id},(err,user) => {
-            if(err) {
-                res.sendStatus(404)
-            } else {
-                //update user info
-                user.isActive = true;
-                user.totalVoilation = 0
-                user.save()
+    try{
+        let reviewId = req.params.reviewId;
+        BlockedAccount.findById({_id: reviewId},(err,doc) => {
+            if(err) res.sendStatus(404)
 
-                // remove data from blocked-account collection
-                doc.deleteOne()
+            UserModel.findOne({_id: doc.account._id},(err,user) => {
+                if(err) {
+                    res.sendStatus(404)
+                } else {
+                    //update user info
+                    user.isActive = true;
+                    user.totalVoilation = 0
+                    user.save()
 
-                // send user an email
-                nodemailer.to([user.email])
+                    // remove data from blocked-account collection
+                    doc.deleteOne()
+
+                    // send user an email
+                    nodemailer.to([user.email])
                         .subject("Account Activated")
                         .text(`Dear ${user.username}, Your Account has been activated successfully`)
                         .sendEmail(onSucess => console.log(`Email Sent ! ${onSucess}`))
-                
-                res.send({error:false,message:'account has been activated'});
-            }
+
+                    res.send({error:false,message:'account has been activated'});
+                }
+
+            })
 
         })
+    }catch (e) {
+        res.status(500).send({error:false,message:'Unable to activate an error'});
+    }
 
-    })
 })
 /**
  * Reject  Account Activation Request

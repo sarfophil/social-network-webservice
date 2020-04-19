@@ -453,18 +453,23 @@ exports.loadAds = (req, res) => {
 exports.submitAccountForReview = function (req, res) {
   try {
     let email = req.body.email;
-    BlockedAccount.findOne({ "account.email": email }, (err, doc) => {
-      if (err || !doc) {
-        res.sendStatus(404)
-      } else {
-        doc.hasRequestedAReview = true
-        doc.save()
-        //TODO: Admin Notification
-        res.sendStatus(201)
-      }
+    BlockedAccount.findOne({
+      "account.email": email
+    }).then((result) => {
+          if (result) {
+            result.hasRequestedAReview = true
+            result.save()
+            res.status(201).send({status: 'Created'})
+          } else {
+            res.sendStatus(404)
+          }
+        }
+    ).catch((err) => {
+      res.sendStatus(404)
     })
-  } catch (e) {
-    res.sendStatus(404)
+
+  }catch (e) {
+      res.sendStatus(404)
   }
 
 }
