@@ -91,8 +91,6 @@ const postService = {
                     }).catch(err => console.log(`${err}`))
                     res.json({ message: "post created" });
                 }
-
-
             }
         }).catch((error) => {
             console.log(error)
