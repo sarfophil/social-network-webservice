@@ -54,34 +54,42 @@ const postService = {
                     // upload images
                     let imageLink = fservice.prepareFiles(postImages).renameAs(post._id.toString()).upload().getNames();
 
-                    if (imageLink) {
+                    // saved
+                    if (imageLink.length > 0) {
                         data.post.imageLink = imageLink;
+
+
+                        // save post
+                        data.post.save()
+
+                        // send Websocket Notification followers
+                        if (post.notifyFollowers) {
+                            let targetUsers = post.audienceFollowers;
+                            publishNotification(targetUsers)
+                        }
+
+                        // wsutil([req.principal.payload.email],{reason: properties.appcodes.postCreated,content: 'Post Created Successfully'})
+                        ws().then(socket => {
+                            socket.emit(req.principal.payload.email,{reason: properties.appcodes.postCreated,content: 'Post Created Successfully'})
+                        }).catch(err => console.log(`${err}`))
+
+                        // created
+                        res.send({ message: "post created" });
+                    }else{
+                        // Invalid Images
+                        ws().then(socket => {
+                            socket.emit(req.principal.payload.email,{reason: properties.appcodes.unableToUpload,content: 'Unable to upload pictures'})
+                        }).catch(err => console.log(`${err}`));
+                        res.status(406).send('Unable upload pictures')
                     }
 
-                    // save post
-                    data.post.save()
-
-                    // send Websocket Notification followers
-                    if (post.notifyFollowers) {
-                        let targetUsers = post.audienceFollowers;
-                        publishNotification(targetUsers)
-                    }
-
-                   // wsutil([req.principal.payload.email],{reason: properties.appcodes.postCreated,content: 'Post Created Successfully'})
-                    ws().then(socket => {
-                        socket.emit(req.principal.payload.email,{reason: properties.appcodes.postCreated,content: 'Post Created Successfully'})
-                    }).catch(err => console.log(`${err}`))
-
-                    // created
-                    res.send({ message: "post created" });
 
                 } catch (e) {
-                    //
-                    console.log(`Error: ${e}`)
+
                     ws().then(socket => {
-                        socket.emit(req.principal.payload.email,{reason: properties.appcodes.postCreated,content: 'Unable to upload pictures'})
+                        socket.emit(req.principal.payload.email,{reason: properties.appcodes.unableToUpload,content: 'Unable to upload pictures'})
                     }).catch(err => console.log(`${err}`));
-                    res.status(500).send('Unable upload pictures')
+                    res.status(406).send('Unable upload pictures')
                 }
 
             } else {
