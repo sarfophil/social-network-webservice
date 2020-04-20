@@ -55,10 +55,12 @@ const postService = {
                     let imageLink = fservice.prepareFiles(postImages).renameAs(post._id.toString()).upload().getNames();
 
                     if (imageLink) {
-                        data.post2.imageLink = imageLink;
-                        data.post2.save().then((data) => {
-                        }).catch((error) => console.log(error));
+                        data.post.imageLink = imageLink;
                     }
+
+                    // save post
+                    data.post.save()
+
                     // send Websocket Notification followers
                     if (post.notifyFollowers) {
                         let targetUsers = post.audienceFollowers;
@@ -67,7 +69,6 @@ const postService = {
 
                    // wsutil([req.principal.payload.email],{reason: properties.appcodes.postCreated,content: 'Post Created Successfully'})
                     ws().then(socket => {
-                        console.log(`Emitted Socket`)
                         socket.emit(req.principal.payload.email,{reason: properties.appcodes.postCreated,content: 'Post Created Successfully'})
                     }).catch(err => console.log(`${err}`))
 
@@ -77,14 +78,19 @@ const postService = {
                 } catch (e) {
                     //
                     console.log(`Error: ${e}`)
+                    ws().then(socket => {
+                        socket.emit(req.principal.payload.email,{reason: properties.appcodes.postCreated,content: 'Unable to upload pictures'})
+                    }).catch(err => console.log(`${err}`));
                     res.status(500).send('Unable upload pictures')
                 }
 
             } else {
                 if (data.error === false){
+                    data.post.save();
                     ws().then(socket => {
                         socket.emit(req.principal.payload.email,{reason: properties.appcodes.postCreated,content: 'Post Created Successfully'})
                     }).catch(err => console.log(`${err}`))
+
                     res.json({ message: "post created" });
                 }
             }

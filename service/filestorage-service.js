@@ -31,7 +31,7 @@ function rename(pattern){
     let count = 0;
     processImages.forEach(image => {
         const getExtension = image.name.split('.')
-        image.name = pattern.concat(count++).concat('.').concat(getExtension[1])
+        image.name = pattern.concat(count++).concat('.').concat(getExtension[getExtension.length-1])
     })
 
     

@@ -96,12 +96,14 @@ postSchema.methods.createOrUpdatePost = async function () {
                             return { "ExceedUNhealthyPost": true };
                     })
 
-                    return { post: this.save(), post2: this, unhealthyPost: true };
+                   // return { post: this.save(), post2: this, unhealthyPost: true };
+                    return {post: this,unhealthyPost: true}
 
                 } else {
                     this.isHealthy = 'yes';
 
-                    return { post: this.save(), post2: this, error: false };
+                   // return { post: this.save(), post2: this, error: false };
+                    return {post: this, error: false}
 
                 }
             })
